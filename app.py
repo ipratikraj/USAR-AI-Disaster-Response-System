@@ -214,6 +214,39 @@ def check_thermal_hazards(img_np):
     is_hazard = hot_pixels > 350
     return is_hazard, hot_pixels
 
+def analyze_structural_damage_and_rubble(img_rgb):
+    """
+    Computes structural damage index, ground roadway traversability,
+    and generates a tactical debris intensity heatmap overlay.
+    """
+    if len(img_rgb.shape) == 3:
+        gray = cv2.cvtColor(np.array(img_rgb), cv2.COLOR_RGB2GRAY)
+    else:
+        gray = np.array(img_rgb)
+    
+    # 1. High-frequency structural edge detection
+    edges = cv2.Canny(gray, 40, 140)
+    
+    # 2. Debris heatmap overlay
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+    dilated = cv2.dilate(edges, kernel, iterations=2)
+    blur_map = cv2.GaussianBlur(dilated.astype(np.float32), (31, 31), 0)
+    norm_map = cv2.normalize(blur_map, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    heatmap = cv2.applyColorMap(norm_map, cv2.COLORMAP_JET)
+    blend_rgb = cv2.addWeighted(cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB), 0.65, heatmap, 0.35, 0)
+    
+    # 3. Overall Rubble Severity Index (0 - 100%)
+    edge_pct = (np.sum(edges > 0) / edges.size) * 100
+    rubble_severity = min(100.0, edge_pct * 12.5)
+    
+    # 4. Roadway traversability (ground quadrant)
+    h, w = gray.shape
+    ground_patch = edges[int(h * 0.55):, :]
+    ground_edge_pct = (np.sum(ground_patch > 0) / ground_patch.size) * 100
+    is_road_impassable = ground_edge_pct > 3.8
+    
+    return round(rubble_severity, 1), is_road_impassable, blend_rgb
+
 def compute_thermal_vitality(crop_arr, full_img, bbox):
     """
     Calculates thermal body radiance contrast delta T = victim_mean - ambient_mean
@@ -387,6 +420,7 @@ if "latest_detections" not in st.session_state:
     st.session_state.latest_detections = []
     st.session_state.latest_source = "None"
     st.session_state.latest_crops = []
+    st.session_state.latest_rubble = (0.0, False)
 
 # =======================================================
 # TAB 1: SECTOR IMAGERY RECON
@@ -639,6 +673,31 @@ with tab_image:
             if not multi_victim and not gate_blocked:
                 trigger_tactical_audio_alert("Hazard Alert! High temperature gas or transformer flare detected.", enabled=enable_audio_siren)
 
+        # ---------------- ROADWAY RUBBLE & STRUCTURAL DAMAGE ANALYSIS ----------------
+        rubble_sev, is_debris_blocked, debris_overlay = analyze_structural_damage_and_rubble(selected_img)
+        st.session_state.latest_rubble = (rubble_sev, is_debris_blocked)
+
+        if is_debris_blocked:
+            st.markdown(f"""
+            <div class="alert-box alert-critical">
+                <strong>🚧 ROADWAY IMPASSABLE: SEVERE CONCRETE RUBBLE COLLAPSE ({rubble_sev}% Debris Density)!</strong><br>
+                Ground quadrant edge roughness indicates severe earthquake debris, shattered slabs, or fallen masonry on the internal society ring road. Heavy rescue bulldozers / debris clearance required before ambulances can drive through.
+            </div>
+            """, unsafe_allow_html=True)
+            if not multi_victim and not gate_blocked and not is_thermal_hazard:
+                trigger_tactical_audio_alert("Roadway obstruction detected. Internal society path is blocked with concrete rubble.", enabled=enable_audio_siren)
+        else:
+            st.markdown(f"""
+            <div class="alert-box alert-k9" style="border-left: 4px solid #2ea043; background: rgba(46, 160, 67, 0.12);">
+                <strong>🟢 INTERNAL ROADWAYS TRAVERSABLE ({rubble_sev}% Debris Density)</strong><br>
+                Ground surface is clear of major concrete blockages. Emergency vehicles and stretcher squads have unhindered path access.
+            </div>
+            """, unsafe_allow_html=True)
+
+        with st.expander("🧱 Tactical Structural Rubble & Debris Intensity Heatmap", expanded=False):
+            st.caption("Morphological edge frequency gradient highlighting concrete fragmentation, wall shearing, and ground debris.")
+            st.image(debris_overlay, caption=f"Structural Rubble Heatmap — Severity: {rubble_sev}% ({'IMPASSABLE' if is_debris_blocked else 'TRAVERSABLE'})", use_container_width=True)
+
         # ---------------- INTERACTIVE SOCIETY GIS TACTICAL MAP ----------------
         st.markdown("---")
         with st.expander("🗺️ Interactive Society Aerial GIS Layout Map (Campus Layout & Real-Time Incident Pins)", expanded=True):
@@ -667,7 +726,9 @@ with tab_image:
                 counts={"Person": counts["Person"], "Dog": counts["Dog"], "Car": obs_count},
                 gate_blocked=gate_blocked,
                 thermal_hazard=is_thermal_hazard,
-                detections=detections
+                detections=detections,
+                rubble_severity=rubble_sev,
+                is_rubble_blocked=is_debris_blocked
             )
             st.download_button(
                 label="📄 Download Official Society USAR Incident Report (PDF)",
@@ -686,6 +747,7 @@ with tab_image:
 📊 *SOCIETY SITUATION REPORT:*
 • Confirmed Trapped Residents: *{counts['Person']}*
 • Main Access Gate ({main_gate_name}): *{'🔴 BLOCKED (Towing Required)' if gate_blocked else '🟢 CLEAR'}*
+• Internal Roadways: *{'🔴 IMPASSABLE (Heavy Rubble)' if is_debris_blocked else '🟢 CLEAR (Traversable)'} ({rubble_sev}% Density)*
 • Utility Corridors (Gas/DG): *{'🔥 HIGH HEAT / FIRE HAZARD' if is_thermal_hazard else '🟢 NORMAL'}*
 • Active Search K9 Teams: *{counts['Dog']}*
 
@@ -1127,12 +1189,17 @@ with tab_dispatch:
     st.caption("Coordinate residential tower evacuations, gate clearance, medical triage, and multi-agency response.")
 
     current_dets = st.session_state.latest_detections
+    latest_rubble = st.session_state.get("latest_rubble", (0.0, False))
     
     # Society Overview KPI Cards
-    soc_c1, soc_c2, soc_c3 = st.columns(3)
+    soc_c1, soc_c2, soc_c3, soc_c4 = st.columns(4)
     soc_c1.info(f"**Housing Society:**\n{society_name}")
-    soc_c2.success(f"**Designated Safe Assembly Point:**\n{safe_assembly_point}")
-    soc_c3.warning(f"**Primary Access Point:**\n{main_gate_name}")
+    soc_c2.success(f"**Safe Assembly Point:**\n{safe_assembly_point}")
+    soc_c3.warning(f"**Primary Access:**\n{main_gate_name}")
+    if latest_rubble[1]:
+        soc_c4.error(f"**Roadways:**\n🔴 IMPASSABLE ({latest_rubble[0]}% Rubble)")
+    else:
+        soc_c4.success(f"**Roadways:**\n🟢 TRAVERSABLE ({latest_rubble[0]}% Rubble)")
 
     # Multi-Tower Resident Directory & Evacuation Accounting
     st.markdown("##### 🏢 Multi-Tower Resident Accounting & Evacuation Reconciliation")
@@ -1187,7 +1254,9 @@ with tab_dispatch:
                 counts={"Person": c_p, "Dog": c_d, "Car": c_o},
                 gate_blocked=c_o > 0,
                 thermal_hazard=False,
-                detections=current_dets
+                detections=current_dets,
+                rubble_severity=latest_rubble[0],
+                is_rubble_blocked=latest_rubble[1]
             )
             st.download_button(
                 label="📄 Download Official Society USAR Report (PDF)",
@@ -1208,6 +1277,7 @@ with tab_dispatch:
             
             st.markdown(f"""
             **Residential Society Response Checklist:**
+            * [ ] **Roadway Clearance**: {'🚨 Dispatch heavy bulldozer to clear internal rubble.' if latest_rubble[1] else 'Roadway clear for ambulance/fire ingress.'}
             * [ ] **Isolate PNG Gas Mains**: Shut down main manifold valve immediately.
             * [ ] **Transformer Yard**: Verify DG set and transformer room are clear of fire.
             * [ ] **Clear {main_gate_name}**: Tow/push vehicles to allow fire brigade ingress.

@@ -15,7 +15,9 @@ def generate_society_pdf_report(
     counts: dict,
     gate_blocked: bool,
     thermal_hazard: bool,
-    detections: list
+    detections: list,
+    rubble_severity: float = 0.0,
+    is_rubble_blocked: bool = False
 ) -> bytes:
     """
     Generates an official PDF Incident Report for Residential Society Earthquake Response.
@@ -102,12 +104,16 @@ def generate_society_pdf_report(
     hazard_status_str = "CRITICAL HIGH-HEAT ANOMALY (>300°C)" if thermal_hazard else "NORMAL (Safe)"
     hazard_action_str = "Isolate gas mains / DG sets; dispatch foam suppression" if thermal_hazard else "No active gas or transformer fire flares detected"
 
+    rubble_status_str = f"IMPASSABLE ({rubble_severity}% Debris Density)" if is_rubble_blocked else f"TRAVERSABLE ({rubble_severity}% Density)"
+    rubble_action_str = "Dispatch heavy debris clearance bulldozer" if is_rubble_blocked else "Roadway surface clear for ambulance and fire truck ingress"
+
     triage_data = [
         ['Assessment Category', 'Count / Status', 'Action Required'],
         ['Trapped Residents (Persons)', f"{p_count} Confirmed", 'Immediate Void Extraction & Heavy Shoring Squad' if p_count > 0 else 'Sector clear of confirmed human heat signatures'],
         ['Search & Rescue K9s', f"{d_count} Active", 'Canine search grid active' if d_count > 0 else 'K9 teams on standby'],
         [f'Society Gate & Driveway ({gate_name})', gate_status_str, gate_action_str],
-        ['Utility Corridors (Gas/Transformer)', hazard_status_str, hazard_action_str]
+        ['Utility Corridors (Gas/Transformer)', hazard_status_str, hazard_action_str],
+        ['Roadway Rubble & Traversability', rubble_status_str, rubble_action_str]
     ]
     t_triage = Table(triage_data, colWidths=[175, 135, 230])
     t_triage.setStyle(TableStyle([
@@ -121,6 +127,7 @@ def generate_society_pdf_report(
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor('#f6f8fa'), colors.white]),
         ('TEXTCOLOR', (1,3), (1,3), colors.HexColor('#cf222e') if gate_blocked else colors.HexColor('#1a7f37')),
         ('TEXTCOLOR', (1,4), (1,4), colors.HexColor('#cf222e') if thermal_hazard else colors.HexColor('#1a7f37')),
+        ('TEXTCOLOR', (1,5), (1,5), colors.HexColor('#cf222e') if is_rubble_blocked else colors.HexColor('#1a7f37')),
     ]))
     story.append(t_triage)
     story.append(Spacer(1, 12))
@@ -151,11 +158,6 @@ def generate_society_pdf_report(
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
             ('FONTSIZE', (0,0), (-1,-1), 8),
             ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-            ('TOPPADDING', (0,0), (-1,-1), 4),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d0d7de')),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f6f8fa')])
-        ]))
-        story.append(t_det)
             ('TOPPADDING', (0,0), (-1,-1), 4),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d0d7de')),
             ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f6f8fa')])
