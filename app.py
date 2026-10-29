@@ -7,10 +7,11 @@ import tempfile
 from PIL import Image
 from pathlib import Path
 from ultralytics import YOLO
+from report_generator import generate_society_pdf_report
 
 # ---------------- PAGE CONFIGURATION ----------------
 st.set_page_config(
-    page_title="USAR-AI // Earthquake Thermal Reconnaissance",
+    page_title="Residential Society // Earthquake USAR AI",
     page_icon="🚨",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -175,12 +176,12 @@ st.markdown("""
 # ---------------- HUD TOP BANNER ----------------
 st.markdown("""
 <div class="hud-header">
-    <div class="hud-title">🚨 USAR-AI // EARTHQUAKE SEARCH & RESCUE COMMAND</div>
-    <div class="hud-sub">Autonomous Multi-Sensor Thermal Reconnaissance • Trapped Survivor Triage • Working K9 Tracking</div>
+    <div class="hud-title">🚨 RESIDENTIAL SOCIETY // EARTHQUAKE DISASTER RECONNAISSANCE</div>
+    <div class="hud-sub">Autonomous Aerial Thermal Reconnaissance • Trapped Resident Triage • Gate Obstacle Assessment • Utility Hazard Defense</div>
     <div class="status-badge-container">
         <span class="hud-badge badge-online">🟢 System: Online</span>
         <span class="hud-badge badge-mps">⚡ Hardware: Apple Silicon MPS (1.7ms / frame)</span>
-        <span class="hud-badge badge-earthquake">🌋 Scenario: Post-Earthquake Structural Collapse</span>
+        <span class="hud-badge badge-earthquake">🏘️ Sector: Residential High-Rise Complex</span>
         <span class="hud-badge badge-online">📡 Offline Edge Mode: Active (Zero Cloud Dependency)</span>
     </div>
 </div>
@@ -197,15 +198,31 @@ AVAILABLE_MODELS["⚠️ FLIR-Only Baseline Model"] = "/Users/pratik/DisasterRes
 
 TARGET_CLASSES = {
     0: "Person",
-    1: "Car",
+    1: "Obstacle / Vehicle",
     2: "Dog"
 }
+
+def check_thermal_hazards(img_np):
+    """Detects extreme saturation (>248) indicative of gas fire or electrical transformer rupture."""
+    if len(img_np.shape) == 3:
+        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = img_np
+    hot_pixels = int(np.sum(gray >= 248))
+    is_hazard = hot_pixels > 350
+    return is_hazard, hot_pixels
 
 @st.cache_resource
 def load_yolo_model(path: str):
     return YOLO(path)
 
 # Sidebar
+st.sidebar.markdown("### 🏘️ SOCIETY CONFIGURATION")
+society_name = st.sidebar.text_input("Housing Society / Complex Name", value="Green Valley Residency")
+safe_assembly_point = st.sidebar.text_input("Designated Safe Assembly Point", value="Central Community Lawn / Park")
+main_gate_name = st.sidebar.text_input("Primary Evacuation Gate", value="Main North Security Gate")
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ TACTICAL CONFIGURATION")
 
 selected_model_name = st.sidebar.selectbox(
@@ -362,7 +379,7 @@ with tab_image:
                 source=selected_img,
                 conf=confidence,
                 iou=iou_thresh,
-                classes=[0, 2, 16],
+                classes=[0, 1, 2, 3, 16],
                 verbose=False
             )[0]
         else:
@@ -381,7 +398,7 @@ with tab_image:
         if results.boxes is not None and len(results.boxes) > 0:
             for b in results.boxes:
                 raw_cls = int(b.cls[0])
-                cname = TARGET_CLASSES.get({0: 0, 2: 1, 16: 2}.get(raw_cls, raw_cls) if is_optical_model else raw_cls)
+                cname = TARGET_CLASSES.get({0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(raw_cls, raw_cls) if is_optical_model else raw_cls)
                 print(f"  -> Cls: {raw_cls} ({cname}) | Conf: {float(b.conf[0]):.3f} | Box: {b.xyxy[0].tolist()}", flush=True)
         else:
             test_res = model.predict(source=selected_img, conf=0.01, verbose=False)[0]
@@ -398,14 +415,14 @@ with tab_image:
         # Parse Detections
         detections = []
         crops = []
-        counts = {"Person": 0, "Car": 0, "Dog": 0}
+        counts = {"Person": 0, "Obstacle / Vehicle": 0, "Dog": 0}
         orig_np = np.array(processed_input)
         
         if results.boxes is not None:
             for idx, box in enumerate(results.boxes):
                 raw_cid = int(box.cls[0].item())
                 if is_optical_model:
-                    coco_to_usar = {0: 0, 2: 1, 16: 2}
+                    coco_to_usar = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}
                     if raw_cid not in coco_to_usar:
                         continue
                     cid = coco_to_usar[raw_cid]
@@ -416,6 +433,8 @@ with tab_image:
                 cname = TARGET_CLASSES.get(cid, f"Class {cid}")
                 if cname in counts:
                     counts[cname] += 1
+                elif cname == "Car" and "Obstacle / Vehicle" in counts:
+                    counts["Obstacle / Vehicle"] += 1
                 
                 # Extract crop thumbnail
                 ix1, iy1, ix2, iy2 = max(0, int(x1)), max(0, int(y1)), min(orig_np.shape[1], int(x2)), min(orig_np.shape[0], int(y2))
@@ -465,11 +484,12 @@ with tab_image:
                 <div style="font-size: 0.75rem; color: #8b949e;">Latency: {:.1f} ms</div>
             </div>
         </div>
-        """.format(counts["Person"], counts["Dog"], counts["Car"], len(detections), dt_ms), unsafe_allow_html=True)
+        """.format(counts["Person"], counts["Dog"], counts.get("Obstacle / Vehicle", counts.get("Car", 0)), len(detections), dt_ms), unsafe_allow_html=True)
 
         # Tactical Alert Evaluation
         people_boxes = [d for d in detections if d["Category"] == "Person"]
         dog_boxes = [d for d in detections if d["Category"] == "Dog"]
+        obs_count = counts.get("Obstacle / Vehicle", counts.get("Car", 0))
 
         # Check for multi-victim cluster in rubble
         multi_victim = False
@@ -486,13 +506,13 @@ with tab_image:
             st.markdown("""
             <div class="alert-box alert-critical">
                 <strong>🚨 CRITICAL USAR TRIAGE ALERT: HIGH-DENSITY COLLAPSED VOID DETECTED!</strong><br>
-                Multiple thermal signatures confirmed in tight structural proximity (&lt;220px). High probability of victims trapped in common room/slab collapse. Dispatch Heavy Rescue Void Shoring team immediately.
+                Multiple thermal signatures confirmed in tight structural proximity (&lt;220px). High probability of residents trapped in common room/slab collapse. Dispatch Heavy Rescue Void Shoring team immediately.
             </div>
             """, unsafe_allow_html=True)
         elif len(people_boxes) == 1:
             st.markdown("""
             <div class="alert-box alert-critical">
-                <strong>⚠️ PRIORITY 2 ALERT: ISOLATED SURVIVOR DETECTED</strong><br>
+                <strong>⚠️ PRIORITY 2 ALERT: ISOLATED RESIDENT DETECTED</strong><br>
                 Single heat signature detected. Dispatch technical search camera & acoustic listening team to establish contact.
             </div>
             """, unsafe_allow_html=True)
@@ -503,6 +523,77 @@ with tab_image:
                 <strong>🐕 ACTIVE K9 OPERATIONS IN SECTOR:</strong> SAR Dog handler team identified operating in this reconnaissance grid.
             </div>
             """, unsafe_allow_html=True)
+
+        # ---------------- RESIDENTIAL SOCIETY SPECIALIZED SAFETY AUDIT ----------------
+        is_thermal_hazard, hot_px = check_thermal_hazards(orig_np) if not is_optical_model else (False, 0)
+        gate_blocked = obs_count > 0
+
+        if gate_blocked:
+            st.markdown(f"""
+            <div class="alert-box alert-critical">
+                <strong>🚨 CRITICAL ACCESS OBSTACLE: {main_gate_name} & PERIMETER FIRE LANE BLOCKED!</strong><br>
+                {obs_count} vehicle(s)/two-wheeler(s) detected obstructing <strong>{main_gate_name}</strong> or internal driveways. Ingress for Fire Brigade ladder trucks & ambulances is obstructed. Dispatch RWA security immediately to tow/clear access.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="alert-box alert-k9" style="border-left: 4px solid #2ea043; background: rgba(46, 160, 67, 0.12);">
+                <strong>🟢 SOCIETY ACCESS GATE ({main_gate_name}): CLEAR</strong><br>
+                Perimeter fire lane and primary entrance are clear. Unobstructed ingress confirmed for emergency ambulances and heavy rescue vehicles.
+            </div>
+            """, unsafe_allow_html=True)
+
+        if is_thermal_hazard:
+            st.markdown("""
+            <div class="alert-box alert-critical">
+                <strong>🔥 SECONDARY UTILITY HAZARD: HIGH-HEAT ANOMALY DETECTED (&gt;300°C)!</strong><br>
+                Extreme thermal pixel saturation detected in utility sector. High risk of electrical transformer explosion or ruptured piped gas (PNG/LPG) line. Evacuate adjacent towers and isolate main gas valves before entry.
+            </div>
+            """, unsafe_allow_html=True)
+
+        # One-Click PDF Report & RWA WhatsApp Broadcast Actions
+        st.markdown("---")
+        act_c1, act_c2 = st.columns([1, 1])
+        with act_c1:
+            pdf_bytes = generate_society_pdf_report(
+                society_name=society_name,
+                safe_zone=safe_assembly_point,
+                gate_name=main_gate_name,
+                model_name=selected_model_name,
+                counts={"Person": counts["Person"], "Dog": counts["Dog"], "Car": obs_count},
+                gate_blocked=gate_blocked,
+                thermal_hazard=is_thermal_hazard,
+                detections=detections
+            )
+            st.download_button(
+                label="📄 Download Official Society USAR Incident Report (PDF)",
+                data=pdf_bytes,
+                file_name=f"USAR_Report_{society_name.replace(' ', '_')}_{int(time.time())}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+        with act_c2:
+            with st.popover("📢 Generate RWA WhatsApp / SMS Emergency Notice"):
+                broadcast_txt = f"""🚨 *URGENT RWA EARTHQUAKE DIRECTIVE* 🚨
+*Complex:* {society_name} | *Time:* {time.strftime('%Y-%m-%d %H:%M:%S')}
+*Reconnaissance System:* USAR-AI Aerial Drone Sweep
+
+━━━━━━━━━━━━━━━━━━━━━
+📊 *SOCIETY SITUATION REPORT:*
+• Confirmed Trapped Residents: *{counts['Person']}*
+• Main Access Gate ({main_gate_name}): *{'🔴 BLOCKED (Towing Required)' if gate_blocked else '🟢 CLEAR'}*
+• Utility Corridors (Gas/DG): *{'🔥 HIGH HEAT / FIRE HAZARD' if is_thermal_hazard else '🟢 NORMAL'}*
+• Active Search K9 Teams: *{counts['Dog']}*
+
+━━━━━━━━━━━━━━━━━━━━━
+⚠️ *DIRECTIVES FOR ALL RESIDENTS:*
+1. 🏃 Do NOT use elevators under any circumstances. Use external stairwells.
+2. 🌳 Proceed immediately to designated Safe Zone: *{safe_assembly_point}*.
+3. 🚗 Keep internal society ring-roads CLEAR for fire engines and ambulances.
+4. 🛑 Stay away from electrical transformer yard and gas line manifolds.
+━━━━━━━━━━━━━━━━━━━━━
+_Issued by Disaster Management Taskforce // {society_name}_"""
+                st.code(broadcast_txt, language="markdown")
 
         # ---------------- THERMAL CROPS GALLERY ----------------
         if crops:
@@ -719,7 +810,7 @@ with tab_video:
                 
                 # Inference on clean sensor frame
                 if is_optical_model:
-                    coco_classes = [0] if "Human Survivors Only" in mission_tracking_mode else [0, 2, 16]
+                    coco_classes = [0] if "Human Survivors Only" in mission_tracking_mode else [0, 1, 2, 3, 16]
                     res = model.predict(
                         source=frame_rgb,
                         conf=vid_conf,
@@ -741,7 +832,7 @@ with tab_video:
                     for b in res.boxes:
                         raw_cid = int(b.cls[0].item())
                         if is_optical_model:
-                            coco_to_usar = {0: 0, 2: 1, 16: 2}
+                            coco_to_usar = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}
                             if raw_cid not in coco_to_usar:
                                 continue
                             cid = coco_to_usar[raw_cid]
@@ -774,7 +865,7 @@ with tab_video:
                     elif cid == 1:
                         curr_cars += 1
                         color = (255, 209, 102)  # Amber
-                        label = f"Vehicle #{tid} ({conf_val:.0%})"
+                        label = f"Obstacle #{tid} ({conf_val:.0%})"
                     else:
                         curr_dogs += 1
                         color = (0, 240, 255)    # Cyan
@@ -795,44 +886,116 @@ with tab_video:
 
             cap.release()
             final_counts = tracker.get_unique_counts()
-            st.success(f"✅ Drone Aerial Reconnaissance Complete! Found {final_counts[0]} unique survivor(s) across {total_frames} frames.")
+            st.success(f"✅ Drone Aerial Reconnaissance Complete! Found {final_counts[0]} unique survivor(s), {final_counts[1]} obstacle(s) across {total_frames} frames.")
+
+            # Action buttons for video recon
+            v_act1, v_act2 = st.columns(2)
+            with v_act1:
+                v_pdf = generate_society_pdf_report(
+                    society_name=society_name,
+                    safe_zone=safe_assembly_point,
+                    gate_name=main_gate_name,
+                    model_name=selected_model_name,
+                    counts={"Person": final_counts[0], "Dog": final_counts[2], "Car": final_counts[1]},
+                    gate_blocked=final_counts[1] > 0,
+                    thermal_hazard=False,
+                    detections=[]
+                )
+                st.download_button(
+                    label="📄 Download Flight Mission Incident Report (PDF)",
+                    data=v_pdf,
+                    file_name=f"Flight_Report_{society_name.replace(' ', '_')}_{int(time.time())}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+            with v_act2:
+                with st.popover("📢 Generate RWA WhatsApp Broadcast"):
+                    v_broadcast = f"""🚨 *URGENT RWA EARTHQUAKE DIRECTIVE* 🚨
+*Complex:* {society_name} | *Time:* {time.strftime('%Y-%m-%d %H:%M:%S')}
+*Reconnaissance System:* Drone Video Flight Recon ({total_frames} frames scanned)
+
+━━━━━━━━━━━━━━━━━━━━━
+📊 *SOCIETY SITUATION REPORT:*
+• Unique Survivors Tracked: *{final_counts[0]}*
+• Main Access Gate ({main_gate_name}): *{'🔴 BLOCKED (Towing Required)' if final_counts[1] > 0 else '🟢 CLEAR'}*
+• Active Search K9 Teams: *{final_counts[2]}*
+
+━━━━━━━━━━━━━━━━━━━━━
+⚠️ *DIRECTIVES FOR ALL RESIDENTS:*
+1. 🏃 Do NOT use elevators. Use external emergency stairwells.
+2. 🌳 Proceed immediately to designated Safe Zone: *{safe_assembly_point}*.
+3. 🚗 Keep internal society driveways CLEAR for fire engines and ambulances.
+━━━━━━━━━━━━━━━━━━━━━
+_Issued by Disaster Management Taskforce // {society_name}_"""
+                    st.code(v_broadcast, language="markdown")
 
 # =======================================================
 # TAB 3: USAR TACTICAL DISPATCH & TRIAGE
 # =======================================================
 with tab_dispatch:
-    st.markdown("#### 📋 USAR Tactical Incident Command & Mission Dispatch")
-    st.caption("Generate actionable coordination manifests for technical search teams, dog handlers, and heavy rescue squads.")
+    st.markdown(f"#### 📋 {society_name} // Incident Command & RWA Dispatch")
+    st.caption("Coordinate residential tower evacuations, gate clearance, medical triage, and multi-agency response.")
 
     current_dets = st.session_state.latest_detections
     
+    # Society Overview KPI Cards
+    soc_c1, soc_c2, soc_c3 = st.columns(3)
+    soc_c1.info(f"**Housing Society:**\n{society_name}")
+    soc_c2.success(f"**Designated Safe Assembly Point:**\n{safe_assembly_point}")
+    soc_c3.warning(f"**Primary Access Point:**\n{main_gate_name}")
+
     if current_dets:
         df = pd.DataFrame(current_dets)
         
         col_d1, col_d2 = st.columns([2, 1])
         
         with col_d1:
-            st.markdown(f"**Recon Target Log for: `{st.session_state.latest_source}`**")
+            st.markdown(f"**Active Target Reconnaissance Log (`{st.session_state.latest_source}`)**")
             display_cols = ["Target ID", "Category", "Confidence", "Sector Box [X1,Y1,X2,Y2]", "Grid Center"]
             st.dataframe(df[display_cols], use_container_width=True)
 
         with col_d2:
-            st.markdown("**Mission Actions & Export**")
+            st.markdown("**Official Mission Exports**")
+            
+            # PDF Report Export
+            c_p = len([d for d in current_dets if d['Category'] == 'Person'])
+            c_d = len([d for d in current_dets if d['Category'] == 'Dog'])
+            c_o = len([d for d in current_dets if d['Category'] in ['Obstacle / Vehicle', 'Car']])
+            
+            pdf_data = generate_society_pdf_report(
+                society_name=society_name,
+                safe_zone=safe_assembly_point,
+                gate_name=main_gate_name,
+                model_name=selected_model_name,
+                counts={"Person": c_p, "Dog": c_d, "Car": c_o},
+                gate_blocked=c_o > 0,
+                thermal_hazard=False,
+                detections=current_dets
+            )
+            st.download_button(
+                label="📄 Download Official Society USAR Report (PDF)",
+                data=pdf_data,
+                file_name=f"USAR_Report_{society_name.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+
             csv_bytes = df.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="📥 Download Mission Dispatch Manifest (CSV)",
+                label="📥 Download Tactical Manifest (CSV)",
                 data=csv_bytes,
                 file_name=f"USAR_DISPATCH_{Path(st.session_state.latest_source).stem}.csv",
                 mime="text/csv",
                 use_container_width=True
             )
             
-            st.markdown("""
-            **Deployment Checklist:**
-            * [ ] Confirm structural integrity with USAR Engineer
-            * [ ] Dispatch acoustic listening devices to high-confidence survivor coordinates
-            * [ ] Establish exclusion zone around collapsed voids
-            * [ ] Clear access roads identified with vehicle blockages
+            st.markdown(f"""
+            **Residential Society Response Checklist:**
+            * [ ] **Isolate PNG Gas Mains**: Shut down main manifold valve immediately.
+            * [ ] **Transformer Yard**: Verify DG set and transformer room are clear of fire.
+            * [ ] **Clear {main_gate_name}**: Tow/push vehicles to allow fire brigade ingress.
+            * [ ] **Lawn Headcount**: Account for elderly and children at {safe_assembly_point}.
+            * [ ] **Broadcast WhatsApp Alert**: Broadcast emergency directive to society group.
             """)
     else:
         st.info("ℹ️ No active reconnaissance data in session. Ingest a thermal frame in the Recon tab to populate the Tactical Dispatch manifest.")
