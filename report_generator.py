@@ -128,36 +128,34 @@ def generate_society_pdf_report(
     # Target Detections Roster
     story.append(Paragraph('<b>2. CONFIRMED TARGET DETECTIONS ROSTER</b>', styles['Heading2']))
     if detections:
-        det_headers = ['Target ID', 'Classification', 'Confidence', 'Bounding Box (x1, y1, x2, y2)', 'USAR Priority']
+        det_headers = ['Target ID', 'Classification', 'Confidence', 'Thermal Vitality / Triage', 'Bounding Box']
         det_rows = [det_headers]
         for idx, d in enumerate(detections[:15]):  # Up to 15 entries
             cid_name = d.get('Category', 'Unknown')
             conf_str = d.get('Confidence', '0%')
-            coords = d.get('Coordinates', [0,0,0,0])
-            coord_str = f"[{coords[0]}, {coords[1]}, {coords[2]}, {coords[3]}]"
-            
-            if cid_name == 'Person':
-                prio = 'Priority 1 (Extraction)'
-            elif cid_name == 'Dog':
-                prio = 'Priority 3 (SAR K9)'
-            else:
-                prio = 'Priority 4 (Gate Obstacle)'
+            coords = d.get('Sector Box [X1,Y1,X2,Y2]', str(d.get('Coordinates', '[0,0,0,0]')))
+            vitality = d.get('Vitality', 'Priority 1 (Extraction)' if cid_name == 'Person' else ('Priority 3 (SAR K9)' if cid_name == 'Dog' else 'Priority 4 (Obstacle)'))
             
             det_rows.append([
                 d.get('Target ID', f"TRG-{idx+1:02d}"),
                 cid_name,
                 conf_str,
-                coord_str,
-                prio
+                vitality,
+                str(coords)
             ])
         
-        t_det = Table(det_rows, colWidths=[70, 90, 75, 175, 130])
+        t_det = Table(det_rows, colWidths=[70, 95, 75, 160, 140])
         t_det.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#24292f')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
             ('FONTSIZE', (0,0), (-1,-1), 8),
             ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d0d7de')),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f6f8fa')])
+        ]))
+        story.append(t_det)
             ('TOPPADDING', (0,0), (-1,-1), 4),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d0d7de')),
             ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f6f8fa')])

@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import cv2
@@ -8,6 +9,7 @@ from PIL import Image
 from pathlib import Path
 from ultralytics import YOLO
 from report_generator import generate_society_pdf_report
+from society_map import create_society_tactical_map
 
 # ---------------- PAGE CONFIGURATION ----------------
 st.set_page_config(
@@ -212,6 +214,80 @@ def check_thermal_hazards(img_np):
     is_hazard = hot_pixels > 350
     return is_hazard, hot_pixels
 
+def compute_thermal_vitality(crop_arr, full_img, bbox):
+    """
+    Calculates thermal body radiance contrast delta T = victim_mean - ambient_mean
+    Returns (status_label, delta_t, risk_badge)
+    """
+    if crop_arr is None or crop_arr.size == 0:
+        return "🟢 Stable Vitality", 35.0, "Low Risk"
+    
+    if len(crop_arr.shape) == 3:
+        crop_gray = cv2.cvtColor(crop_arr, cv2.COLOR_RGB2GRAY)
+    else:
+        crop_gray = crop_arr
+    
+    victim_mean = float(np.mean(crop_gray))
+    
+    x1, y1, x2, y2 = bbox
+    H, W = full_img.shape[:2]
+    pad = 16
+    mx1, my1, mx2, my2 = max(0, x1 - pad), max(0, y1 - pad), min(W, x2 + pad), min(H, y2 + pad)
+    
+    if len(full_img.shape) == 3:
+        full_gray = cv2.cvtColor(full_img, cv2.COLOR_RGB2GRAY)
+    else:
+        full_gray = full_img
+        
+    margin_patch = full_gray[my1:my2, mx1:mx2]
+    margin_mean = float(np.mean(margin_patch)) if margin_patch.size > 0 else (victim_mean - 25.0)
+    
+    delta_t = victim_mean - margin_mean
+    
+    if delta_t >= 28.0:
+        return "🟢 Stable Vitality (Active Radiance)", delta_t, "Low Risk"
+    elif delta_t >= 14.0:
+        return "🟡 Moderate Heat Loss", delta_t, "Medium Risk"
+    else:
+        return "🔴 Severe Hypothermia Risk (Fading Heat)", delta_t, "Critical Risk"
+
+def trigger_tactical_audio_alert(message: str, enabled: bool = True):
+    """Plays an emergency two-tone siren and vocal alert via HTML5 Web Audio & Speech Synthesis."""
+    if not enabled:
+        return
+    clean_msg = message.replace('"', '\\"').replace("'", "\\'")
+    js_code = f"""
+    <script>
+    (function() {{
+        try {{
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {{
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.16);
+                osc.frequency.linearRampToValueAtTime(880, ctx.currentTime + 0.32);
+                gain.gain.setValueAtTime(0.06, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.40);
+            }}
+            if ('speechSynthesis' in window) {{
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance("{clean_msg}");
+                u.rate = 1.05;
+                window.speechSynthesis.speak(u);
+            }}
+        }} catch(e) {{}}
+    }})();
+    </script>
+    """
+    components.html(js_code, height=0)
+
 @st.cache_resource
 def load_yolo_model(path: str):
     return YOLO(path)
@@ -221,6 +297,7 @@ st.sidebar.markdown("### 🏘️ SOCIETY CONFIGURATION")
 society_name = st.sidebar.text_input("Housing Society / Complex Name", value="Green Valley Residency")
 safe_assembly_point = st.sidebar.text_input("Designated Safe Assembly Point", value="Central Community Lawn / Park")
 main_gate_name = st.sidebar.text_input("Primary Evacuation Gate", value="Main North Security Gate")
+total_society_pop = st.sidebar.number_input("Total Registered Residents (All Towers)", min_value=10, max_value=5000, value=180, step=10)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ TACTICAL CONFIGURATION")
@@ -232,6 +309,7 @@ selected_model_name = st.sidebar.selectbox(
 )
 model_path = AVAILABLE_MODELS[selected_model_name]
 is_optical_model = "Daylight Optical" in selected_model_name
+enable_audio_siren = st.sidebar.checkbox("🔊 Tactical Audio Siren & Voice Alerts", value=True)
 
 try:
     model = load_yolo_model(model_path)
@@ -297,10 +375,11 @@ def apply_thermal_enhancement(img_rgb):
     return Image.fromarray(cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2RGB))
 
 # ---------------- MAIN APPLICATION TABS ----------------
-tab_image, tab_video, tab_dispatch = st.tabs([
+tab_image, tab_video, tab_live, tab_dispatch = st.tabs([
     "🛰️ Sector Imagery Reconnaissance", 
     "🎥 Aerial Drone Video Recon", 
-    "📋 USAR Tactical Dispatch & Triage"
+    "📡 Live Tactical Stream (Webcam / Drone)",
+    "📋 Society Incident Command & RWA Dispatch"
 ])
 
 # Global state to share detections with dispatch tab
@@ -436,17 +515,21 @@ with tab_image:
                 elif cname == "Car" and "Obstacle / Vehicle" in counts:
                     counts["Obstacle / Vehicle"] += 1
                 
-                # Extract crop thumbnail
+                # Extract crop thumbnail & compute thermal vitality
                 ix1, iy1, ix2, iy2 = max(0, int(x1)), max(0, int(y1)), min(orig_np.shape[1], int(x2)), min(orig_np.shape[0], int(y2))
+                vit_status, delta_t, risk_badge = ("N/A", 0.0, "N/A")
                 if ix2 > ix1 and iy2 > iy1:
                     crop = orig_np[iy1:iy2, ix1:ix2]
-                    crops.append((cname, score, crop, (ix1, iy1, ix2, iy2)))
+                    if cname == "Person" and not is_optical_model:
+                        vit_status, delta_t, risk_badge = compute_thermal_vitality(crop, orig_np, (ix1, iy1, ix2, iy2))
+                    crops.append((cname, score, crop, (ix1, iy1, ix2, iy2), vit_status))
 
                 detections.append({
                     "Target ID": f"TRG-{idx+1:02d}",
                     "Category": cname,
                     "Confidence": f"{score:.1%}",
                     "Confidence_Score": score,
+                    "Vitality": vit_status,
                     "Sector Box [X1,Y1,X2,Y2]": f"[{int(x1)}, {int(y1)}, {int(x2)}, {int(y2)}]",
                     "Width (px)": int(x2 - x1),
                     "Height (px)": int(y2 - y1),
@@ -509,6 +592,7 @@ with tab_image:
                 Multiple thermal signatures confirmed in tight structural proximity (&lt;220px). High probability of residents trapped in common room/slab collapse. Dispatch Heavy Rescue Void Shoring team immediately.
             </div>
             """, unsafe_allow_html=True)
+            trigger_tactical_audio_alert(f"Attention! High density collapsed void detected in {society_name}. Dispatch void shoring squad.", enabled=enable_audio_siren)
         elif len(people_boxes) == 1:
             st.markdown("""
             <div class="alert-box alert-critical">
@@ -535,6 +619,8 @@ with tab_image:
                 {obs_count} vehicle(s)/two-wheeler(s) detected obstructing <strong>{main_gate_name}</strong> or internal driveways. Ingress for Fire Brigade ladder trucks & ambulances is obstructed. Dispatch RWA security immediately to tow/clear access.
             </div>
             """, unsafe_allow_html=True)
+            if not multi_victim:
+                trigger_tactical_audio_alert(f"Warning! Access gate {main_gate_name} is obstructed. Clear driveway for fire engines.", enabled=enable_audio_siren)
         else:
             st.markdown(f"""
             <div class="alert-box alert-k9" style="border-left: 4px solid #2ea043; background: rgba(46, 160, 67, 0.12);">
@@ -550,6 +636,24 @@ with tab_image:
                 Extreme thermal pixel saturation detected in utility sector. High risk of electrical transformer explosion or ruptured piped gas (PNG/LPG) line. Evacuate adjacent towers and isolate main gas valves before entry.
             </div>
             """, unsafe_allow_html=True)
+            if not multi_victim and not gate_blocked:
+                trigger_tactical_audio_alert("Hazard Alert! High temperature gas or transformer flare detected.", enabled=enable_audio_siren)
+
+        # ---------------- INTERACTIVE SOCIETY GIS TACTICAL MAP ----------------
+        st.markdown("---")
+        with st.expander("🗺️ Interactive Society Aerial GIS Layout Map (Campus Layout & Real-Time Incident Pins)", expanded=True):
+            st.caption("Real-time geospatial layout of residential towers, designated safe assembly lawn, main access gate, and utility hazards.")
+            map_html = create_society_tactical_map(
+                society_name=society_name,
+                safe_zone=safe_assembly_point,
+                gate_name=main_gate_name,
+                people_count=counts["Person"],
+                obstacle_count=obs_count,
+                k9_count=counts["Dog"],
+                has_hazard=is_thermal_hazard,
+                detections=detections
+            )
+            components.html(map_html, height=450)
 
         # One-Click PDF Report & RWA WhatsApp Broadcast Actions
         st.markdown("---")
@@ -597,11 +701,17 @@ _Issued by Disaster Management Taskforce // {society_name}_"""
 
         # ---------------- THERMAL CROPS GALLERY ----------------
         if crops:
-            with st.expander(f"🎯 Confirmed Thermal Signature Thumbnails ({len(crops)} Targets Extracted)", expanded=True):
+            with st.expander(f"🎯 Confirmed Target Thumbnails & Thermal Vitality ({len(crops)} Targets Extracted)", expanded=True):
                 cols = st.columns(min(len(crops), 6))
-                for i, (cname, conf, crop_arr, bbox) in enumerate(crops[:12]):
+                for i, crop_info in enumerate(crops[:12]):
+                    cname = crop_info[0]
+                    conf = crop_info[1]
+                    crop_arr = crop_info[2]
+                    bbox = crop_info[3]
+                    vit = crop_info[4] if len(crop_info) > 4 else ""
                     with cols[i % len(cols)]:
-                        st.image(crop_arr, caption=f"{cname} ({conf:.0%})", use_container_width=True)
+                        caption_text = f"{cname} ({conf:.0%})" + (f"\n{vit}" if vit and vit != "N/A" else "")
+                        st.image(crop_arr, caption=caption_text, use_container_width=True)
 
 # =======================================================
 # TAB 2: AERIAL DRONE VIDEO RECON
@@ -930,7 +1040,87 @@ _Issued by Disaster Management Taskforce // {society_name}_"""
                     st.code(v_broadcast, language="markdown")
 
 # =======================================================
-# TAB 3: USAR TACTICAL DISPATCH & TRIAGE
+# TAB 3: LIVE TACTICAL RECON (WEBCAM / IP DRONE STREAM)
+# =======================================================
+with tab_live:
+    st.markdown("#### 📡 Real-Time Reconnaissance Stream (Mac Webcam / IP Drone Camera)")
+    st.caption("Live edge video ingestion supporting local webcam and RTSP / HTTP network streams from drones or phones.")
+
+    live_c1, live_c2 = st.columns([1, 1])
+    with live_c1:
+        stream_mode = st.radio(
+            "Live Video Ingestion Mode",
+            ["📸 High-Resolution Live Camera Snapshot", "🎥 Continuous Edge Stream (Webcam / IP Camera)"],
+            index=0
+        )
+    with live_c2:
+        if "Continuous" in stream_mode:
+            stream_src_input = st.text_input("Camera Index or Network URL (0 for Mac Webcam, or RTSP/HTTP)", value="0")
+        else:
+            st.info("💡 Snaps a high-resolution frame from your Mac's camera or connected phone for instant tactical triage.")
+
+    if "Snapshot" in stream_mode:
+        live_snap = st.camera_input("Capture Instant Reconnaissance Frame from Camera")
+        if live_snap is not None:
+            snap_img = Image.open(live_snap).convert("RGB")
+            snap_np = np.array(snap_img)
+            
+            # Predict
+            if is_optical_model:
+                snap_res = model.predict(source=snap_img, conf=confidence, iou=iou_thresh, classes=[0, 1, 2, 3, 16], verbose=False)[0]
+            else:
+                snap_res = model.predict(source=snap_img, conf=confidence, iou=iou_thresh, verbose=False)[0]
+            
+            snap_annotated = snap_res.plot()[:, :, ::-1]
+            st.image(snap_annotated, caption=f"Live Recon Analysis — {selected_model_name}", use_container_width=True)
+            
+            snap_boxes = snap_res.boxes
+            snap_people = 0
+            if snap_boxes is not None:
+                for b in snap_boxes:
+                    cid = int(b.cls[0].item())
+                    if is_optical_model:
+                        cid = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(cid, cid)
+                    if cid == 0:
+                        snap_people += 1
+            st.success(f"Confirmed {snap_people} person(s) in live camera view.")
+            if snap_people > 0:
+                trigger_tactical_audio_alert(f"Live camera verified {snap_people} person.", enabled=enable_audio_siren)
+
+    else:
+        st.write("Click below to start continuous stream processing:")
+        col_btn1, col_btn2 = st.columns(2)
+        live_run = col_btn1.toggle("🔴 Start Live Stream Processing", key="live_stream_toggle")
+        
+        if live_run:
+            live_frame_placeholder = st.empty()
+            live_metric_placeholder = st.empty()
+            
+            cam_dev = int(stream_src_input) if stream_src_input.isdigit() else stream_src_input
+            live_cap = cv2.VideoCapture(cam_dev)
+            
+            frame_cnt = 0
+            while live_run and live_cap.isOpened():
+                l_ret, l_frame = live_cap.read()
+                if not l_ret:
+                    st.warning("Unable to fetch video frame from device. Check device connection.")
+                    break
+                
+                frame_cnt += 1
+                if frame_cnt % 2 == 0:
+                    l_rgb = cv2.cvtColor(l_frame, cv2.COLOR_BGR2RGB)
+                    if is_optical_model:
+                        l_res = model.predict(source=l_rgb, conf=confidence, classes=[0, 1, 2, 3, 16], verbose=False)[0]
+                    else:
+                        l_res = model.predict(source=l_rgb, conf=confidence, verbose=False)[0]
+                    
+                    l_draw = l_res.plot()
+                    live_frame_placeholder.image(l_draw[:, :, ::-1], caption=f"Live Feed Active — {selected_model_name}", use_container_width=True)
+                    live_metric_placeholder.info(f"Target Signatures in Frame: {len(l_res.boxes) if l_res.boxes is not None else 0}")
+            live_cap.release()
+
+# =======================================================
+# TAB 4: SOCIETY INCIDENT COMMAND & RWA DISPATCH
 # =======================================================
 with tab_dispatch:
     st.markdown(f"#### 📋 {society_name} // Incident Command & RWA Dispatch")
@@ -944,24 +1134,51 @@ with tab_dispatch:
     soc_c2.success(f"**Designated Safe Assembly Point:**\n{safe_assembly_point}")
     soc_c3.warning(f"**Primary Access Point:**\n{main_gate_name}")
 
+    # Multi-Tower Resident Directory & Evacuation Accounting
+    st.markdown("##### 🏢 Multi-Tower Resident Accounting & Evacuation Reconciliation")
+    c_p = len([d for d in current_dets if d.get('Category') == 'Person']) if current_dets else 0
+    c_d = len([d for d in current_dets if d.get('Category') == 'Dog']) if current_dets else 0
+    c_o = len([d for d in current_dets if d.get('Category') in ['Obstacle / Vehicle', 'Car']]) if current_dets else 0
+
+    acc_c1, acc_c2, acc_c3, acc_c4 = st.columns(4)
+    acc_c1.metric("🏢 Total Residents", f"{total_society_pop} People")
+    safe_lawn_est = acc_c2.number_input("🌳 Verified Safe in Lawn", min_value=0, max_value=int(total_society_pop), value=max(0, int(total_society_pop) - c_p - 20))
+    acc_c3.metric("🔴 Trapped in Towers", f"{c_p} Residents")
+    unacc_count = max(0, int(total_society_pop) - int(safe_lawn_est) - c_p)
+    acc_c4.metric("⚠️ Unaccounted / Missing", f"{unacc_count} Residents")
+
+    pct_accounted = min(1.0, (int(safe_lawn_est) + c_p) / max(1, int(total_society_pop)))
+    st.progress(pct_accounted)
+    st.caption(f"**Safety Roster:** {pct_accounted:.1%} of society population accounted for ({int(safe_lawn_est) + c_p} / {total_society_pop} residents).")
+
+    # Interactive Tactical Map in Command Center
+    st.markdown("---")
+    with st.expander("🗺️ Society Tactical GIS Aerial Layout Map", expanded=True):
+        map_html = create_society_tactical_map(
+            society_name=society_name,
+            safe_zone=safe_assembly_point,
+            gate_name=main_gate_name,
+            people_count=c_p,
+            obstacle_count=c_o,
+            k9_count=c_d,
+            has_hazard=False,
+            detections=current_dets
+        )
+        components.html(map_html, height=420)
+
+    st.markdown("---")
     if current_dets:
         df = pd.DataFrame(current_dets)
-        
         col_d1, col_d2 = st.columns([2, 1])
         
         with col_d1:
             st.markdown(f"**Active Target Reconnaissance Log (`{st.session_state.latest_source}`)**")
-            display_cols = ["Target ID", "Category", "Confidence", "Sector Box [X1,Y1,X2,Y2]", "Grid Center"]
-            st.dataframe(df[display_cols], use_container_width=True)
+            display_cols = ["Target ID", "Category", "Confidence", "Vitality", "Sector Box [X1,Y1,X2,Y2]", "Grid Center"]
+            avail_cols = [c for c in display_cols if c in df.columns]
+            st.dataframe(df[avail_cols], use_container_width=True)
 
         with col_d2:
             st.markdown("**Official Mission Exports**")
-            
-            # PDF Report Export
-            c_p = len([d for d in current_dets if d['Category'] == 'Person'])
-            c_d = len([d for d in current_dets if d['Category'] == 'Dog'])
-            c_o = len([d for d in current_dets if d['Category'] in ['Obstacle / Vehicle', 'Car']])
-            
             pdf_data = generate_society_pdf_report(
                 society_name=society_name,
                 safe_zone=safe_assembly_point,
