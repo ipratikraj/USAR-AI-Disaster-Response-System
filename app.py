@@ -191,6 +191,7 @@ AVAILABLE_MODELS = {}
 _triple_weights = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_triplesensor_detector/weights/best.pt"
 if Path(_triple_weights).exists():
     AVAILABLE_MODELS["🌟 Triple-Sensor Universal Model (FLIR + Seek + LLVIP)"] = _triple_weights
+AVAILABLE_MODELS["☀️ Daylight Optical Recon Mode (RGB / Visible Light)"] = "/Users/pratik/DisasterResponseSystem/yolo11n.pt"
 AVAILABLE_MODELS["⚡ Multi-Sensor Model (FLIR + Seek)"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_multisensor_detector-2/weights/best.pt"
 AVAILABLE_MODELS["⚠️ FLIR-Only Baseline Model"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/flir_thermal_detector/weights/best.pt"
 
@@ -213,6 +214,7 @@ selected_model_name = st.sidebar.selectbox(
     index=0
 )
 model_path = AVAILABLE_MODELS[selected_model_name]
+is_optical_model = "Daylight Optical" in selected_model_name
 
 try:
     model = load_yolo_model(model_path)
@@ -355,12 +357,21 @@ with tab_image:
 
         # Always run model on clean, authentic sensor imagery (unmodified weights distribution)
         t0 = time.time()
-        results = model.predict(
-            source=selected_img,
-            conf=confidence,
-            iou=iou_thresh,
-            verbose=False
-        )[0]
+        if is_optical_model:
+            results = model.predict(
+                source=selected_img,
+                conf=confidence,
+                iou=iou_thresh,
+                classes=[0, 2, 16],
+                verbose=False
+            )[0]
+        else:
+            results = model.predict(
+                source=selected_img,
+                conf=confidence,
+                iou=iou_thresh,
+                verbose=False
+            )[0]
         dt_ms = (time.time() - t0) * 1000
 
         print(f"=== INFERENCE DEBUG ===", flush=True)
@@ -369,7 +380,9 @@ with tab_image:
         print(f"Raw Boxes in results: {len(results.boxes) if results.boxes is not None else 0}", flush=True)
         if results.boxes is not None and len(results.boxes) > 0:
             for b in results.boxes:
-                print(f"  -> Cls: {int(b.cls[0])} ({TARGET_CLASSES.get(int(b.cls[0]))}) | Conf: {float(b.conf[0]):.3f} | Box: {b.xyxy[0].tolist()}", flush=True)
+                raw_cls = int(b.cls[0])
+                cname = TARGET_CLASSES.get({0: 0, 2: 1, 16: 2}.get(raw_cls, raw_cls) if is_optical_model else raw_cls)
+                print(f"  -> Cls: {raw_cls} ({cname}) | Conf: {float(b.conf[0]):.3f} | Box: {b.xyxy[0].tolist()}", flush=True)
         else:
             test_res = model.predict(source=selected_img, conf=0.01, verbose=False)[0]
             print(f"DEBUG: No boxes at {confidence:.2f}! Top hits at 0.01 threshold: {[f'{test_res.names[int(b.cls[0])]}: {float(b.conf[0]):.3f}' for b in test_res.boxes[:5]]}", flush=True)
@@ -390,7 +403,14 @@ with tab_image:
         
         if results.boxes is not None:
             for idx, box in enumerate(results.boxes):
-                cid = int(box.cls[0].item())
+                raw_cid = int(box.cls[0].item())
+                if is_optical_model:
+                    coco_to_usar = {0: 0, 2: 1, 16: 2}
+                    if raw_cid not in coco_to_usar:
+                        continue
+                    cid = coco_to_usar[raw_cid]
+                else:
+                    cid = raw_cid
                 score = float(box.conf[0].item())
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
                 cname = TARGET_CLASSES.get(cid, f"Class {cid}")
@@ -500,23 +520,31 @@ with tab_video:
     st.caption("Inspect aerial drone flights frame-by-frame with persistent multi-object tracking and noise suppression.")
 
     v_c1, v_c2 = st.columns([1, 1])
-    video_source_path = None
     
     with v_c1:
-        st.markdown("**Upload Drone Flight Video**")
+        st.markdown("**Option A: Ingest Drone Flight Video**")
         uploaded_video = st.file_uploader("Upload flight recording (.mp4, .avi, .mov)", type=["mp4", "avi", "mov"], key="vid_uploader")
         if uploaded_video:
             tfile = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
             tfile.write(uploaded_video.read())
-            video_source_path = tfile.name
+            st.session_state["active_video_path"] = tfile.name
 
     with v_c2:
-        st.markdown("**Tactical Drone Demo Flight**")
-        demo_vid_path = Path("samples/drone_recon_demo.mp4")
-        if demo_vid_path.exists():
-            st.write("Or use the pre-loaded 45-frame aerial FLIR thermal survey flight:")
-            if st.button("🚀 Load Pre-Recorded Drone Recon Flight", use_container_width=True):
-                video_source_path = str(demo_vid_path)
+        st.markdown("**Option B: Deploy Tactical Benchmark Video Presets**")
+        demo_drone = Path("samples/drone_recon_demo.mp4")
+        demo_ped = Path("samples/pedestrians_thermal_recon.mp4")
+        
+        b_c1, b_c2 = st.columns(2)
+        with b_c1:
+            if demo_drone.exists():
+                if st.button("🚁 Preset 1: Aerial FLIR Recon", use_container_width=True):
+                    st.session_state["active_video_path"] = str(demo_drone)
+        with b_c2:
+            if demo_ped.exists():
+                if st.button("🚶 Preset 2: Night IR Pedestrians", use_container_width=True):
+                    st.session_state["active_video_path"] = str(demo_ped)
+
+    video_source_path = st.session_state.get("active_video_path", None)
 
     # Video controls
     v_ctrl1, v_ctrl2 = st.columns([1, 1])
@@ -550,6 +578,15 @@ with tab_video:
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
         st.info(f"Loaded: `{Path(video_source_path).name}` | Total Frames: {total_frames} | Native FPS: {fps:.1f}")
+
+        if not is_optical_model:
+            chk_cap = cv2.VideoCapture(video_source_path)
+            c_ret, c_frame = chk_cap.read()
+            chk_cap.release()
+            if c_ret:
+                hsv = cv2.cvtColor(c_frame, cv2.COLOR_BGR2HSV)
+                if hsv[:, :, 1].mean() > 22.0:
+                    st.warning("☀️ **Visible-Light Daylight Video Detected**: This footage has standard color saturation (optical RGB). Our primary thermal models specialize in infrared heat radiation (night/dust/rubble). For daylight optical video, select **'☀️ Daylight Optical Recon Mode (RGB / Visible Light)'** in the sidebar!")
 
         start_btn = st.button("▶️ Begin AI Drone Video Reconnaissance & Tracking", type="primary")
         
@@ -681,18 +718,35 @@ with tab_video:
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
                 # Inference on clean sensor frame
-                res = model.predict(
-                    source=frame_rgb,
-                    conf=vid_conf,
-                    iou=iou_thresh,
-                    classes=track_classes if track_classes else None,
-                    verbose=False
-                )[0]
+                if is_optical_model:
+                    coco_classes = [0] if "Human Survivors Only" in mission_tracking_mode else [0, 2, 16]
+                    res = model.predict(
+                        source=frame_rgb,
+                        conf=vid_conf,
+                        iou=iou_thresh,
+                        classes=coco_classes,
+                        verbose=False
+                    )[0]
+                else:
+                    res = model.predict(
+                        source=frame_rgb,
+                        conf=vid_conf,
+                        iou=iou_thresh,
+                        classes=track_classes if track_classes else None,
+                        verbose=False
+                    )[0]
                 
                 raw_dets = []
                 if res.boxes is not None:
                     for b in res.boxes:
-                        cid = int(b.cls[0].item())
+                        raw_cid = int(b.cls[0].item())
+                        if is_optical_model:
+                            coco_to_usar = {0: 0, 2: 1, 16: 2}
+                            if raw_cid not in coco_to_usar:
+                                continue
+                            cid = coco_to_usar[raw_cid]
+                        else:
+                            cid = raw_cid
                         score = float(b.conf[0].item())
                         x1, y1, x2, y2 = b.xyxy[0].tolist()
                         cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
