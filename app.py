@@ -51,35 +51,140 @@ st.markdown("""
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
-    /* High-Impact Tactical Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        border-bottom: 2px solid #21262d;
-        padding-bottom: 6px;
-        margin-bottom: 20px;
+    /* Tactical Physical Folder Tab Styling (Streamlit 1.66+ React-Aria & BaseWeb) */
+    div[data-testid="stTabs"] [role="tablist"],
+    div[data-testid="stTabs"] .react-aria-TabList,
+    div[data-testid="stTabs"] [data-baseweb="tab-list"],
+    div.stTabs [role="tablist"],
+    [data-baseweb="tab-list"] {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px !important;
+        border-bottom: 2px solid #30363d !important;
+        padding-bottom: 0px !important;
+        margin-bottom: 22px !important;
+        background: transparent !important;
+        align-items: flex-end !important;
+        overflow-x: auto !important;
     }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        color: #8b949e;
-        padding: 9px 18px;
-        font-weight: 700;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        transition: all 0.2s ease;
+
+    /* Target physical folder tab cards (div or button) */
+    div[data-testid="stTabs"] [data-testid="stTab"],
+    div[data-testid="stTabs"] [role="tab"],
+    div[data-testid="stTabs"] .react-aria-Tab,
+    div[data-testid="stTabs"] button[role="tab"],
+    div[data-testid="stTabs"] button[data-baseweb="tab"],
+    div.stTabs [role="tab"],
+    button[data-baseweb="tab"] {
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
+        border-bottom: 2px solid #30363d !important;
+        border-radius: 8px 8px 0 0 !important;
+        color: #8b949e !important;
+        padding: 10px 22px !important;
+        height: auto !important;
+        min-height: 42px !important;
+        font-weight: 750 !important;
+        font-size: 0.90rem !important;
+        letter-spacing: 0.4px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+        position: relative !important;
+        bottom: -2px !important;
+        user-select: none !important;
+        white-space: nowrap !important;
     }
-    .stTabs [data-baseweb="tab"]:hover {
-        color: #ffffff;
-        background-color: #21262d;
-        border-color: #58a6ff;
+
+    /* Hover State */
+    div[data-testid="stTabs"] [data-testid="stTab"]:hover,
+    div[data-testid="stTabs"] [role="tab"]:hover,
+    div[data-testid="stTabs"] .react-aria-Tab:hover,
+    div[data-testid="stTabs"] [data-testid="stTab"][data-hovered],
+    div[data-testid="stTabs"] button[role="tab"]:hover,
+    div[data-testid="stTabs"] button[data-baseweb="tab"]:hover,
+    div.stTabs [role="tab"]:hover,
+    button[data-baseweb="tab"]:hover {
+        color: #ffffff !important;
+        background-color: #21262d !important;
+        border-color: #58a6ff88 !important;
+        border-bottom-color: #30363d !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
     }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(180deg, rgba(88, 166, 255, 0.18) 0%, rgba(22, 27, 34, 0.9) 100%) !important;
+
+    /* Active / Selected Physical Tab State */
+    div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"],
+    div[data-testid="stTabs"] [data-testid="stTab"][data-selected="true"],
+    div[data-testid="stTabs"] [data-testid="stTab"][data-selected],
+    div[data-testid="stTabs"] [role="tab"][aria-selected="true"],
+    div[data-testid="stTabs"] [role="tab"][data-selected="true"],
+    div[data-testid="stTabs"] [role="tab"][data-selected],
+    div[data-testid="stTabs"] .react-aria-Tab[aria-selected="true"],
+    div[data-testid="stTabs"] .react-aria-Tab[data-selected="true"],
+    div[data-testid="stTabs"] .react-aria-Tab[data-selected],
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+    div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"],
+    div.stTabs [aria-selected="true"],
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background: linear-gradient(180deg, #1f2937 0%, #161b22 100%) !important;
         color: #58a6ff !important;
-        border: 1px solid #58a6ff !important;
-        box-shadow: 0 0 14px rgba(88, 166, 255, 0.25) !important;
+        border-top: 3px solid #58a6ff !important;
+        border-left: 1px solid #58a6ff !important;
+        border-right: 1px solid #58a6ff !important;
+        border-bottom: 2px solid #161b22 !important;
+        box-shadow: 0 -4px 14px rgba(88, 166, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        transform: translateY(-2px) !important;
+        z-index: 5 !important;
+    }
+
+    /* Force Tab Text Typography */
+    div[data-testid="stTabs"] [data-testid="stTab"] p,
+    div[data-testid="stTabs"] [data-testid="stTab"] span,
+    div[data-testid="stTabs"] [data-testid="stTab"] div,
+    div[data-testid="stTabs"] [role="tab"] p,
+    div[data-testid="stTabs"] [role="tab"] span,
+    div[data-testid="stTabs"] [role="tab"] div,
+    div[data-testid="stTabs"] button[role="tab"] p,
+    div[data-testid="stTabs"] button[data-baseweb="tab"] p,
+    div.stTabs [role="tab"] p,
+    button[data-baseweb="tab"] p {
+        font-weight: 750 !important;
+        font-size: 0.90rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: inherit !important;
+        letter-spacing: 0.4px !important;
+        white-space: nowrap !important;
+    }
+
+    div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] p,
+    div[data-testid="stTabs"] [data-testid="stTab"][data-selected] p,
+    div[data-testid="stTabs"] [role="tab"][aria-selected="true"] p,
+    div[data-testid="stTabs"] [role="tab"][data-selected] p,
+    div[data-testid="stTabs"] .react-aria-Tab[aria-selected="true"] p,
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p,
+    div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p,
+    div.stTabs [aria-selected="true"] p,
+    button[data-baseweb="tab"][aria-selected="true"] p {
+        color: #58a6ff !important;
+        font-weight: 900 !important;
+        text-shadow: 0 0 10px rgba(88, 166, 255, 0.4) !important;
+    }
+
+    /* Completely hide flat underline indicators from BaseWeb & React Aria */
+    div[data-testid="stTabs"] .react-aria-SelectionIndicator,
+    div[data-baseweb="tab-highlight"],
+    div[data-baseweb="tab-border"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        background: transparent !important;
+        border: none !important;
     }
     
     /* Top HUD header bar */
@@ -564,9 +669,43 @@ def load_yolo_model(path: str):
 
 def sidebar_header(tag: str, title: str, accent_color: str = "#58a6ff"):
     return f"""
-    <div style="display: flex; align-items: center; gap: 8px; margin: 18px 0 8px 0; padding-bottom: 6px; border-bottom: 1px solid #21262d;">
-        <span style="background: {accent_color}22; color: {accent_color}; border: 1px solid {accent_color}55; font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.6px; text-transform: uppercase;">{tag}</span>
-        <span style="font-size: 0.82rem; font-weight: 800; color: #f0f6fc; letter-spacing: 0.8px; text-transform: uppercase;">{title}</span>
+    <div style="
+        background: linear-gradient(135deg, rgba(26, 32, 44, 0.95) 0%, rgba(13, 17, 23, 0.95) 100%);
+        border: 1px solid {accent_color}44;
+        border-left: 5px solid {accent_color};
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 20px 0 10px 0;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    ">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+            <span style="
+                background: {accent_color};
+                color: #0d1117;
+                font-size: 0.70rem;
+                font-weight: 900;
+                padding: 2px 8px;
+                border-radius: 4px;
+                letter-spacing: 0.8px;
+                text-transform: uppercase;
+                box-shadow: 0 2px 6px {accent_color}55;
+            ">{tag}</span>
+            <span style="font-size: 0.65rem; color: #8b949e; letter-spacing: 0.8px; text-transform: uppercase; font-weight: 750;">COMMAND CONFIG</span>
+        </div>
+        <div style="
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #ffffff 30%, {accent_color} 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-top: 2px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+        ">
+            {title}
+        </div>
     </div>
     """
 
