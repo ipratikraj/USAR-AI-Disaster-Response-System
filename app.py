@@ -305,8 +305,19 @@ USAR_TACTICAL_TARGETS = {
 }
 
 MISSION_TARGET_PRESETS = {
+    "🌟 Standard USAR Search Grid (Person + Dog + Vehicle + Backpack)": [
+        "👤 Person (Survivors)",
+        "🐕 Dog (Search K9 / Pet)",
+        "🚗 Car / Vehicle",
+        "🎒 Backpack (Victim Marker)"
+    ],
     "🆘 Life Rescue Priority (Person Only)": [
         "👤 Person (Survivors)"
+    ],
+    "🐕 Life & Pet Evacuation (Person + Dogs + Cats)": [
+        "👤 Person (Survivors)",
+        "🐕 Dog (Search K9 / Pet)",
+        "🐈 Cat (Domestic Pet)"
     ],
     "🎒 Rubble Clues & Personal Belongings (Person + Bags + Phones)": [
         "👤 Person (Survivors)",
@@ -321,11 +332,6 @@ MISSION_TARGET_PRESETS = {
         "🏍️ Motorcycle / Scooter",
         "🚲 Bicycle",
         "🚚 Truck / Bus"
-    ],
-    "🐕 Life & Pet Evacuation (Person + Dogs + Cats)": [
-        "👤 Person (Survivors)",
-        "🐕 Dog (Search K9 / Pet)",
-        "🐈 Cat (Domestic Pet)"
     ],
     "🌐 Full Disaster Field Recon (All Tactical Targets)": list(USAR_TACTICAL_TARGETS.keys()),
     "🎛️ Custom Mission Targets (User Selected)": []
@@ -514,7 +520,7 @@ st.sidebar.markdown("### 🎯 MISSION TARGET SELECTOR")
 selected_preset = st.sidebar.selectbox(
     "Mission Target Profile",
     options=list(MISSION_TARGET_PRESETS.keys()),
-    index=1,
+    index=0,
     help="Select a standardized search mission profile or customize exact targets. 'Person' is always preserved by default."
 )
 
@@ -522,7 +528,12 @@ if "Custom" in selected_preset:
     chosen_targets = st.sidebar.multiselect(
         "Active Search Targets (Person is locked default)",
         options=list(USAR_TACTICAL_TARGETS.keys()),
-        default=["👤 Person (Survivors)", "🎒 Backpack (Victim Marker)"],
+        default=[
+            "👤 Person (Survivors)",
+            "🐕 Dog (Search K9 / Pet)",
+            "🚗 Car / Vehicle",
+            "🎒 Backpack (Victim Marker)"
+        ],
         help="Select any targets to search for. 'Person' is always enforced for life safety."
     )
 else:
@@ -569,10 +580,10 @@ if not active_thermal_classes:
     active_thermal_classes = [0]  # Minimum Person for thermal
 
 # Status badge for active targets
-preview_tags = [t.split(" (")[0] for t in chosen_targets[:3]]
+preview_tags = [t.split(" (")[0] for t in chosen_targets[:4]]
 active_summary = " • ".join(preview_tags)
-if len(chosen_targets) > 3:
-    active_summary += f" +{len(chosen_targets)-3} more"
+if len(chosen_targets) > 4:
+    active_summary += f" +{len(chosen_targets)-4} more"
 if chosen_extended:
     active_summary += f" • {len(chosen_extended)} ext"
 st.sidebar.markdown(f"<small style='color: #58a6ff;'><b>Active Targets:</b> {active_summary}</small>", unsafe_allow_html=True)
