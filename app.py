@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import time
 import tempfile
+from collections import Counter
 from PIL import Image
 from pathlib import Path
 from ultralytics import YOLO
@@ -255,11 +256,11 @@ USAR_TACTICAL_TARGETS = {
         "locked": False
     },
     "🐈 Cat (Domestic Pet)": {
-        "coco_id": [15],
+        "coco_id": [15, 21],
         "thermal_id": [2],
         "category": "Canine & Pet",
         "icon": "🐈",
-        "desc": "Trapped domestic cats/pets",
+        "desc": "Trapped domestic cats / pets (including fluffy & Persian breeds)",
         "locked": False
     },
     "🚗 Car / Vehicle": {
@@ -340,7 +341,7 @@ MISSION_TARGET_PRESETS = {
 TARGET_CLASSES = {
     0: "Person",
     1: "Obstacle / Vehicle",
-    2: "Dog"
+    2: "Pet Animal (Dog / Cat)"
 }
 
 def resolve_detection_info(raw_cid: int, is_optical: bool = True, opt_names: dict = None):
@@ -348,6 +349,8 @@ def resolve_detection_info(raw_cid: int, is_optical: bool = True, opt_names: dic
     Resolves raw model class ID into (display_name, tactical_category, icon)
     """
     if is_optical:
+        if raw_cid == 21:
+            return "Cat (Fluffy Breed)", "Canine & Pet", "🐈"
         for tname, tinfo in USAR_TACTICAL_TARGETS.items():
             if raw_cid in tinfo["coco_id"]:
                 clean_name = tname.split(" (")[0]
@@ -361,7 +364,7 @@ def resolve_detection_info(raw_cid: int, is_optical: bool = True, opt_names: dic
         thermal_map = {
             0: ("Person", "Survivor", "🔴"),
             1: ("Obstacle / Vehicle", "Evacuation Obstacle", "🚗"),
-            2: ("Dog / Pet Animal", "Canine & Pet", "🐾")
+            2: ("Pet Animal (Dog / Cat)", "Canine & Pet", "🐾")
         }
         return thermal_map.get(raw_cid, (f"Class {raw_cid}", "Thermal Signature", "🟢"))
 
@@ -484,7 +487,17 @@ def trigger_tactical_audio_alert(message: str, enabled: bool = True):
 
 @st.cache_resource
 def load_yolo_model(path: str):
-    return YOLO(path)
+    m = YOLO(path)
+    # Tactical overlay customization
+    if hasattr(m, "model") and hasattr(m.model, "names") and isinstance(m.model.names, dict):
+        if len(m.model.names) == 3 and 2 in m.model.names:
+            m.model.names[0] = "Person"
+            m.model.names[1] = "Obstacle / Vehicle"
+            m.model.names[2] = "Pet Animal (Dog/Cat)"
+        elif len(m.model.names) == 80:
+            if 21 in m.model.names:
+                m.model.names[21] = "Cat (Fluffy Breed)"
+    return m
 
 # Sidebar
 st.sidebar.markdown("### 🏘️ SOCIETY CONFIGURATION")
@@ -545,7 +558,7 @@ if "👤 Person (Survivors)" not in chosen_targets:
 # Extended COCO Objects Search (all 80 classes)
 with st.sidebar.expander("🔍 Search Extended Objects (Full 80 Classes)"):
     st.caption("Search for any general COCO object in addition to tactical USAR targets:")
-    curated_coco_ids = [0, 1, 2, 3, 5, 7, 10, 15, 16, 24, 26, 28, 67]
+    curated_coco_ids = [0, 1, 2, 3, 5, 7, 10, 15, 16, 21, 24, 26, 28, 67]
     ext_options = sorted([
         name.title() for cid, name in optical_model.names.items()
         if cid not in curated_coco_ids
