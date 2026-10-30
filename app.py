@@ -370,10 +370,11 @@ def resolve_detection_info(raw_cid: int, is_optical: bool = True, opt_names: dic
 
 def check_thermal_hazards(img_np):
     """Detects extreme saturation (>248) indicative of gas fire or electrical transformer rupture."""
-    if len(img_np.shape) == 3:
-        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+    arr = np.array(img_np)
+    if len(arr.shape) == 3:
+        gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
     else:
-        gray = img_np
+        gray = arr
     hot_pixels = int(np.sum(gray >= 248))
     is_hazard = hot_pixels > 350
     return is_hazard, hot_pixels
@@ -383,10 +384,11 @@ def analyze_structural_damage_and_rubble(img_rgb):
     Computes structural damage index, ground roadway traversability,
     and generates a tactical debris intensity heatmap overlay.
     """
-    if len(img_rgb.shape) == 3:
-        gray = cv2.cvtColor(np.array(img_rgb), cv2.COLOR_RGB2GRAY)
+    arr = np.array(img_rgb)
+    if len(arr.shape) == 3:
+        gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
     else:
-        gray = np.array(img_rgb)
+        gray = arr
     
     # 1. High-frequency structural edge detection
     edges = cv2.Canny(gray, 40, 140)
@@ -416,8 +418,12 @@ def compute_thermal_vitality(crop_arr, full_img, bbox):
     Calculates thermal body radiance contrast delta T = victim_mean - ambient_mean
     Returns (status_label, delta_t, risk_badge)
     """
-    if crop_arr is None or crop_arr.size == 0:
+    if crop_arr is None:
         return "🟢 Stable Vitality", 35.0, "Low Risk"
+    crop_arr = np.array(crop_arr)
+    if crop_arr.size == 0:
+        return "🟢 Stable Vitality", 35.0, "Low Risk"
+    full_img = np.array(full_img)
     
     if len(crop_arr.shape) == 3:
         crop_gray = cv2.cvtColor(crop_arr, cv2.COLOR_RGB2GRAY)
