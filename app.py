@@ -11,6 +11,14 @@ from pathlib import Path
 from ultralytics import YOLO
 from report_generator import generate_society_pdf_report
 from society_map import create_society_tactical_map
+from data.society_registry import (
+    get_headcount_stats, get_all_residents, update_resident_status,
+    add_resident, update_resident, delete_resident, export_to_csv,
+    import_from_csv, VULNERABILITY_OPTIONS, PET_OPTIONS, EVACUATION_STATUSES,
+    get_residents_by_sector
+)
+from data.sitrep_generator import generate_html_sitrep
+from datetime import datetime
 
 # ---------------- PAGE CONFIGURATION ----------------
 st.set_page_config(
@@ -671,19 +679,23 @@ def apply_thermal_enhancement(img_rgb):
     return Image.fromarray(cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2RGB))
 
 # ---------------- MAIN APPLICATION TABS ----------------
-tab_image, tab_video, tab_live, tab_dispatch = st.tabs([
-    "🛰️ Sector Imagery Reconnaissance", 
+tab_image, tab_video, tab_live, tab_dispatch, tab_registry = st.tabs([
+    "🛰️ Sector Imagery Recon", 
     "🎥 Aerial Drone Video Recon", 
-    "📡 Live Tactical Stream (Webcam / Drone)",
-    "📋 Society Incident Command & RWA Dispatch"
+    "📡 Live Tactical Stream",
+    "📋 Incident Command & Tactical SitRep",
+    "🏢 Society Directory & Evacuation Roster"
 ])
 
-# Global state to share detections with dispatch tab
+# Global state to share detections with dispatch & SitRep
 if "latest_detections" not in st.session_state:
     st.session_state.latest_detections = []
     st.session_state.latest_source = "None"
     st.session_state.latest_crops = []
     st.session_state.latest_rubble = (0.0, False)
+    st.session_state.latest_hazard = False
+    st.session_state.latest_raw_img = None
+    st.session_state.latest_annotated_img = None
 
 # =======================================================
 # TAB 1: SECTOR IMAGERY RECON
@@ -849,6 +861,8 @@ with tab_image:
         st.session_state.latest_detections = detections
         st.session_state.latest_source = img_name
         st.session_state.latest_crops = crops
+        st.session_state.latest_raw_img = selected_img
+        st.session_state.latest_annotated_img = Image.fromarray(annotated_rgb)
 
         # ---------------- EARTHQUAKE TRIAGE ASSESSMENT ----------------
         st.markdown(f"""
@@ -937,6 +951,7 @@ with tab_image:
 
         # ---------------- RESIDENTIAL SOCIETY SPECIALIZED SAFETY AUDIT ----------------
         is_thermal_hazard, hot_px = check_thermal_hazards(orig_np) if not is_optical_model else (False, 0)
+        st.session_state.latest_hazard = is_thermal_hazard
         gate_blocked = obs_count > 0
 
         if gate_blocked:
@@ -1068,6 +1083,26 @@ _Issued by Disaster Management Taskforce // {society_name}_"""
                     with cols[i % len(cols)]:
                         caption_text = f"{cname} ({conf:.0%})" + (f"\n{vit}" if vit and vit != "N/A" else "")
                         st.image(crop_arr, caption=caption_text, use_container_width=True)
+
+        # ---------------- SECTOR RESIDENT CROSS-REFERENCE (SMART LINK) ----------------
+        st.markdown("---")
+        with st.expander("🏢 Sector Resident Cross-Reference (Link AI Detections to Tower & Flats)", expanded=True):
+            st.caption("Cross-reference observed drone sector coordinates with registered residents, vulnerable individuals, and pets:")
+            sc_col1, sc_col2 = st.columns([1, 2])
+            with sc_col1:
+                target_tower = st.selectbox("Observed Tower in Frame", ["Tower A", "Tower B", "Tower C", "Tower D"], index=0, key="link_tower")
+                floor_range = st.slider("Floor Range in View", 1, 10, (1, 4), key="link_floors")
+            with sc_col2:
+                sec_residents = get_residents_by_sector(target_tower, floor_range[0], floor_range[1])
+                if not sec_residents.empty:
+                    st.markdown(f"**Found {len(sec_residents)} Flat(s) in {target_tower} (Floors {floor_range[0]}–{floor_range[1]}):**")
+                    for _, r in sec_residents.iterrows():
+                        stat_badge = "🟢 SAFE" if r['evacuation_status'] == "SAFE_AT_ASSEMBLY" else ("🔴 TRAPPED" if r['evacuation_status'] == "CONFIRMED_TRAPPED" else "⚪ UNACCOUNTED")
+                        vuln_text = f" | ⚠️ **{r['vulnerability']}**" if r['vulnerability'] != "None (Able-bodied)" else ""
+                        pet_text = f" | 🐾 **{r['pets']}**" if r['pets'] != "None" else ""
+                        st.markdown(f"- **Flat {r['flat_number']}** ({r['primary_resident']}, {r['occupants_count']} pers): `{stat_badge}`{vuln_text}{pet_text} &bull; 📞 `{r['phone']}`")
+                else:
+                    st.info(f"No registered flats found in {target_tower} between floors {floor_range[0]}–{floor_range[1]}.")
 
 # =======================================================
 # TAB 2: AERIAL DRONE VIDEO RECON
@@ -1558,16 +1593,16 @@ with tab_dispatch:
     c_o = len([d for d in current_dets if d.get('Tactical Group') == 'Evacuation Obstacle' or d.get('Category') in ['Obstacle / Vehicle', 'Car', 'Bicycle', 'Motorcycle', 'Truck', 'Bus']]) if current_dets else 0
     c_clues = len([d for d in current_dets if d.get('Tactical Group') == 'Rubble Clue' or d.get('Category') in ['Backpack', 'Handbag', 'Suitcase', 'Cell Phone']]) if current_dets else 0
 
+    stats = get_headcount_stats()
     acc_c1, acc_c2, acc_c3, acc_c4 = st.columns(4)
-    acc_c1.metric("🏢 Total Residents", f"{total_society_pop} People")
-    safe_lawn_est = acc_c2.number_input("🌳 Verified Safe in Lawn", min_value=0, max_value=int(total_society_pop), value=max(0, int(total_society_pop) - c_p - 20))
-    acc_c3.metric("🔴 Trapped in Towers", f"{c_p} Residents")
-    unacc_count = max(0, int(total_society_pop) - int(safe_lawn_est) - c_p)
-    acc_c4.metric("⚠️ Unaccounted / Missing", f"{unacc_count} Residents")
+    acc_c1.metric("🏢 Total Registered", f"{stats['total_residents']} Residents", f"{stats['total_flats']} Flats")
+    acc_c2.metric("🌳 Verified Safe in Lawn", f"{stats['safe_residents']} Residents", f"{stats['safe_flats']} Flats")
+    acc_c3.metric("🔴 Trapped in Towers", f"{stats['trapped_residents']} Residents", f"{stats['trapped_flats']} Flats")
+    acc_c4.metric("⚠️ Unaccounted / Missing", f"{stats['unaccounted_residents']} Residents", f"{stats['unaccounted_flats']} Flats")
 
-    pct_accounted = min(1.0, (int(safe_lawn_est) + c_p) / max(1, int(total_society_pop)))
+    pct_accounted = min(1.0, (stats['safe_residents'] + stats['trapped_residents']) / max(1, stats['total_residents']))
     st.progress(pct_accounted)
-    st.caption(f"**Safety Roster:** {pct_accounted:.1%} of society population accounted for ({int(safe_lawn_est) + c_p} / {total_society_pop} residents).")
+    st.caption(f"**Safety Roster:** {pct_accounted:.1%} of society population accounted for ({stats['safe_residents'] + stats['trapped_residents']} / {stats['total_residents']} residents).")
     if c_d > 0:
         st.success(f"🐾 **Domestic Pets & Animals Accounted:** {c_d} pet(s) (dogs/cats) identified in sweep. Ready for family reunification at {safe_assembly_point}.")
     if c_clues > 0:
@@ -1583,7 +1618,7 @@ with tab_dispatch:
             people_count=c_p,
             obstacle_count=c_o,
             k9_count=c_d,
-            has_hazard=False,
+            has_hazard=st.session_state.get("latest_hazard", False),
             detections=current_dets
         )
         components.html(map_html, height=420)
@@ -1608,7 +1643,7 @@ with tab_dispatch:
                 model_name=selected_model_name,
                 counts={"Person": c_p, "Dog": c_d, "Car": c_o, "Rubble Clue": c_clues},
                 gate_blocked=c_o > 0,
-                thermal_hazard=False,
+                thermal_hazard=st.session_state.get("latest_hazard", False),
                 detections=current_dets,
                 rubble_severity=latest_rubble[0],
                 is_rubble_blocked=latest_rubble[1]
@@ -1640,4 +1675,234 @@ with tab_dispatch:
             * [ ] **Broadcast WhatsApp Alert**: Broadcast emergency directive to society group.
             """)
     else:
-        st.info("ℹ️ No active reconnaissance data in session. Ingest a thermal frame in the Recon tab to populate the Tactical Dispatch manifest.")
+        st.info("ℹ️ Ingest an image or video in the Recon tabs to populate the active target log.")
+
+    # ---------------- AUTOMATED USAR SITUATION REPORT (SITREP) ----------------
+    st.markdown("---")
+    st.markdown("##### 🖨️ Official USAR Situation Report (SitRep / INSARAG Standard)")
+    st.caption("Generate a certified post-incident Search and Rescue SitRep for fire chiefs, ambulance paramedics, and RWA management.")
+    
+    sit_c1, sit_c2 = st.columns([3, 1])
+    with sit_c1:
+        commander_title = st.text_input("Commanding Officer / Reporter Title", value=f"USAR Tactical Team Lead // {society_name} Incident Command", key="sitrep_cmd")
+    with sit_c2:
+        st.write("")
+        st.write("")
+        btn_preview_sitrep = st.button("📋 Generate Live SitRep", use_container_width=True, key="btn_gen_sitrep")
+
+    sitrep_html = generate_html_sitrep(
+        society_name=society_name,
+        safe_assembly_point=safe_assembly_point,
+        primary_gate=main_gate_name,
+        sensor_model_name=selected_model_name,
+        ai_detections=current_dets,
+        rubble_info=latest_rubble,
+        is_thermal_hazard=st.session_state.get("latest_hazard", False),
+        source_image=st.session_state.get("latest_raw_img", None),
+        overlay_image=st.session_state.get("latest_annotated_img", None),
+        commander_name=commander_title
+    )
+
+    sitrep_b1, sitrep_b2 = st.columns(2)
+    with sitrep_b1:
+        st.download_button(
+            label="🌐 Download Certified HTML SitRep",
+            data=sitrep_html,
+            file_name=f"SITREP_{society_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M')}.html",
+            mime="text/html",
+            use_container_width=True
+        )
+    with sitrep_b2:
+        st.caption("💡 Open downloaded HTML to print or save directly as PDF.")
+
+    with st.expander("👁️ Preview Live Situation Report (SitRep)", expanded=False):
+        components.html(sitrep_html, height=650, scrolling=True)
+
+# =======================================================
+# TAB 5: SOCIETY RESIDENT DIRECTORY & EVACUATION ROSTER
+# =======================================================
+with tab_registry:
+    st.markdown(f"#### 🏢 {society_name} // Resident Directory & Evacuation Roster")
+    st.caption("100% Offline SQLite database for gate headcount tally, high-vulnerability rescue tracking, and flat management.")
+
+    # Top KPI Cards
+    stats = get_headcount_stats()
+    kpi_c1, kpi_c2, kpi_c3, kpi_c4, kpi_c5 = st.columns(5)
+    kpi_c1.metric("🏢 Total Residents", f"{stats['total_residents']} Pers", f"{stats['total_flats']} Flats")
+    kpi_c2.metric("🟢 Safe at Lawn", f"{stats['safe_residents']} Pers", f"{stats['safe_flats']} Flats")
+    kpi_c3.metric("🔴 Confirmed Trapped", f"{stats['trapped_residents']} Pers", f"{stats['trapped_flats']} Flats")
+    kpi_c4.metric("⚪ Unaccounted", f"{stats['unaccounted_residents']} Pers", f"{stats['unaccounted_flats']} Flats")
+    kpi_c5.metric("🚨 High-Risk Missing", f"{stats['vuln_unaccounted_flats']} Flats", f"Pets Inside: {stats['pets_inside_flats']}", delta_color="inverse")
+
+    # Sub-tabs for the 3 operational views
+    sub_view_tally, sub_view_priority, sub_view_editor = st.tabs([
+        "🛡️ Gate Headcount & Check-In",
+        "🚨 High-Vulnerability Priority Board",
+        "⚙️ Resident Directory Editor & CSV"
+    ])
+
+    with sub_view_tally:
+        st.markdown("##### 🛡️ Gate Check-In & Evacuation Tally")
+        st.caption("Security guards and triage volunteers at the gate can rapidly mark residents as Safe or Trapped.")
+        
+        tc_f1, tc_f2, tc_f3 = st.columns([2, 1, 1])
+        search_txt = tc_f1.text_input("🔍 Quick Search (Flat No, Resident Name, Phone)", placeholder="Type e.g. 201, Sharma, 98201...", key="tally_search")
+        tower_filt = tc_f2.selectbox("Filter Tower", ["All Towers", "Tower A", "Tower B", "Tower C", "Tower D"], key="tally_tower")
+        status_filt = tc_f3.selectbox("Filter Evacuation Status", ["All Statuses", "UNACCOUNTED", "SAFE_AT_ASSEMBLY", "CONFIRMED_TRAPPED", "OFF_SITE"], key="tally_status")
+        
+        tally_df = get_all_residents(tower=tower_filt, status=status_filt, search_query=search_txt)
+        
+        st.markdown(f"**Displaying {len(tally_df)} Flat(s):**")
+        for _, row in tally_df.iterrows():
+            rid = row["id"]
+            stat = row["evacuation_status"]
+            stat_info = EVACUATION_STATUSES.get(stat, ("Unknown", "#8b949e"))
+            
+            with st.container():
+                st.markdown(f"""
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 1.1rem; font-weight: 800; color: #58a6ff;">{row['tower_id']} - Flat {row['flat_number']}</span>
+                            <span style="font-size: 0.85rem; color: #8b949e; margin-left: 8px;">(Floor {row['floor']})</span>
+                            <span style="margin-left: 10px; font-weight: 700; color: {stat_info[1]};">{stat_info[0]}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #8b949e;">
+                            Occupants: <strong style="color: #ffffff;">{row['occupants_count']}</strong> | 📞 <a href="tel:{row['phone']}" style="color: #58a6ff;">{row['phone']}</a>
+                        </div>
+                    </div>
+                    <div style="margin-top: 6px; font-size: 0.85rem;">
+                        <strong>Resident:</strong> {row['primary_resident']}
+                        {' | <span style="color: #ff7b72; font-weight: 600;">⚠️ ' + row['vulnerability'] + '</span>' if row['vulnerability'] != 'None (Able-bodied)' else ''}
+                        {' | <span>🐾 ' + row['pets'] + '</span>' if row['pets'] != 'None' else ''}
+                        {' | Next of Kin: ' + str(row['emergency_contact_name']) + ' (' + str(row['emergency_contact_phone']) + ')' if row['emergency_contact_name'] else ''}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Action buttons
+                btn_cols = st.columns([1, 1, 1, 3])
+                if stat != "SAFE_AT_ASSEMBLY":
+                    if btn_cols[0].button("🟢 Mark Safe at Lawn", key=f"safe_{rid}", use_container_width=True):
+                        update_resident_status(rid, "SAFE_AT_ASSEMBLY")
+                        st.rerun()
+                if stat != "CONFIRMED_TRAPPED":
+                    if btn_cols[1].button("🔴 Mark Trapped", key=f"trap_{rid}", use_container_width=True):
+                        update_resident_status(rid, "CONFIRMED_TRAPPED")
+                        st.rerun()
+                if stat != "UNACCOUNTED":
+                    if btn_cols[2].button("⚪ Reset Unaccounted", key=f"unacc_{rid}", use_container_width=True):
+                        update_resident_status(rid, "UNACCOUNTED")
+                        st.rerun()
+
+    with sub_view_priority:
+        st.markdown("##### 🚨 High-Vulnerability Rescue Priority Board")
+        st.caption("Real-time extraction target list for search squads. Displays residents with special needs who are STILL UNACCOUNTED.")
+        
+        vuln_all = get_all_residents(only_vulnerable=True)
+        vuln_pending = vuln_all[vuln_all["evacuation_status"].isin(["UNACCOUNTED", "CONFIRMED_TRAPPED"])]
+        
+        if not vuln_pending.empty:
+            st.error(f"⚠️ **ATTENTION SEARCH SQUADS:** {len(vuln_pending)} vulnerable households require immediate physical assistance or stretcher evacuation!")
+            for _, r in vuln_pending.iterrows():
+                is_trap = r["evacuation_status"] == "CONFIRMED_TRAPPED"
+                border_color = "#ff3366" if is_trap else "#d29922"
+                stat_tag = "🔴 CONFIRMED TRAPPED" if is_trap else "⚪ UNACCOUNTED (High Vulnerability)"
+                st.markdown(f"""
+                <div style="background: #161b22; border-left: 5px solid {border_color}; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size: 1.2rem; font-weight: 800; color: #58a6ff;">{r['tower_id']} &bull; Flat {r['flat_number']} (Floor {r['floor']})</span>
+                        <span style="font-weight: 800; color: {border_color}; font-size: 0.9rem;">{stat_tag}</span>
+                    </div>
+                    <div style="font-size: 1rem; color: #ff7b72; font-weight: 700; margin: 4px 0;">
+                        {r['vulnerability']}
+                    </div>
+                    <div style="font-size: 0.9rem; color: #c9d1d9;">
+                        <strong>Primary Resident:</strong> {r['primary_resident']} ({r['occupants_count']} occupants) &bull; 📞 <code>{r['phone']}</code>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #8b949e; margin-top: 4px;">
+                        <strong>Pets:</strong> {r['pets']} &bull; 
+                        <strong>Next of Kin:</strong> {r['emergency_contact_name']} ({r['emergency_contact_phone']})
+                    </div>
+                    <div style="font-size: 0.85rem; color: #ffd166; margin-top: 4px;">
+                        <strong>Dispatch Notes:</strong> {r['notes'] or 'Standard USAR evacuation protocol.'}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                v_btn_cols = st.columns([1, 4])
+                if v_btn_cols[0].button("🟢 Mark Rescued & Safe", key=f"vuln_safe_{r['id']}", use_container_width=True):
+                    update_resident_status(r['id'], "SAFE_AT_ASSEMBLY")
+                    st.rerun()
+        else:
+            st.success("🟢 All registered high-vulnerability residents have been safely evacuated to the Central Lawn!")
+
+    with sub_view_editor:
+        st.markdown("##### ⚙️ Resident Directory Editor & CSV Bulk Transfer")
+        st.caption("Manage flat records, register new families, or bulk-import society spreadsheets.")
+        
+        ed_col1, ed_col2 = st.columns([1, 1])
+        
+        with ed_col1:
+            st.markdown("**➕ Add / Update Flat Record**")
+            with st.form("form_add_resident", clear_on_submit=True):
+                form_tower = st.selectbox("Tower", ["Tower A", "Tower B", "Tower C", "Tower D"])
+                form_flat = st.text_input("Flat Number", placeholder="e.g. B-502")
+                form_floor = st.number_input("Floor", min_value=1, max_value=30, value=1)
+                form_name = st.text_input("Primary Resident Name", placeholder="e.g. R. K. Sharma")
+                form_phone = st.text_input("Resident Phone Number", placeholder="+91 98200 ...")
+                form_occ = st.number_input("Total Occupants in Flat", min_value=1, max_value=15, value=2)
+                form_vuln = st.selectbox("Vulnerability / Special Assistance", VULNERABILITY_OPTIONS)
+                form_pets = st.selectbox("Registered Pets", PET_OPTIONS)
+                form_em_name = st.text_input("Off-Site Emergency Contact Name")
+                form_em_phone = st.text_input("Emergency Contact Phone")
+                form_notes = st.text_area("Tactical Dispatch Notes", placeholder="e.g. Key with neighbor, elderly resident, pet carrier required...")
+                
+                submitted = st.form_submit_button("💾 Save Flat Record", use_container_width=True)
+                if submitted:
+                    if form_flat and form_name and form_phone:
+                        try:
+                            add_resident(
+                                tower_id=form_tower,
+                                flat_number=form_flat,
+                                floor=form_floor,
+                                primary_resident=form_name,
+                                phone=form_phone,
+                                occupants_count=form_occ,
+                                vulnerability=form_vuln,
+                                pets=form_pets,
+                                emergency_contact_name=form_em_name,
+                                emergency_contact_phone=form_em_phone,
+                                notes=form_notes
+                            )
+                            st.success(f"✓ Flat {form_flat} registered successfully!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error saving flat: {e}")
+                    else:
+                        st.warning("Please fill in Flat Number, Resident Name, and Phone.")
+                        
+        with ed_col2:
+            st.markdown("**📥 Bulk CSV Import & Export**")
+            st.caption("Download society database backup or upload your existing society Excel/CSV resident list:")
+            
+            csv_data = export_to_csv()
+            st.download_button(
+                label="📤 Export Complete Resident Database (CSV)",
+                data=csv_data,
+                file_name=f"Society_Residents_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            
+            st.markdown("---")
+            st.markdown("**Upload Resident CSV File:**")
+            uploaded_csv = st.file_uploader("Upload CSV formatted spreadsheet", type=["csv"], key="csv_uploader")
+            if uploaded_csv:
+                csv_str = uploaded_csv.getvalue().decode("utf-8")
+                count, err = import_from_csv(csv_str)
+                if err:
+                    st.error(f"Import failed: {err}")
+                else:
+                    st.success(f"✓ Successfully imported/updated {count} flats!")
+                    st.rerun()
