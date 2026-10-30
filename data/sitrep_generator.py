@@ -61,7 +61,7 @@ def generate_html_sitrep(
         vuln_rows_html += f"""
         <tr>
             <td style="font-weight: 700; color: #58a6ff;">{row['tower_id']} - {row['flat_number']}</td>
-            <td>{row['primary_resident']} ({row['occupants_count']} pers)</td>
+            <td>{row['primary_resident']} ({row['occupants_count']} residents)</td>
             <td style="color: #ff7b72; font-weight: 600;">{row['vulnerability']}</td>
             <td>{row['pets']}</td>
             <td><a href="tel:{row['phone']}" style="color: #58a6ff;">{row['phone']}</a></td>

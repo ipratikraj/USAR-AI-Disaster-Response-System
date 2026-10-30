@@ -1100,7 +1100,8 @@ _Issued by Disaster Management Taskforce // {society_name}_"""
                         stat_badge = "🟢 SAFE" if r['evacuation_status'] == "SAFE_AT_ASSEMBLY" else ("🔴 TRAPPED" if r['evacuation_status'] == "CONFIRMED_TRAPPED" else "⚪ UNACCOUNTED")
                         vuln_text = f" | ⚠️ **{r['vulnerability']}**" if r['vulnerability'] != "None (Able-bodied)" else ""
                         pet_text = f" | 🐾 **{r['pets']}**" if r['pets'] != "None" else ""
-                        st.markdown(f"- **Flat {r['flat_number']}** ({r['primary_resident']}, {r['occupants_count']} pers): `{stat_badge}`{vuln_text}{pet_text} &bull; 📞 `{r['phone']}`")
+                        occ_str = f"{r['occupants_count']} resident" if r['occupants_count'] == 1 else f"{r['occupants_count']} residents"
+                        st.markdown(f"- **Flat {r['flat_number']}** ({r['primary_resident']}, {occ_str}): `{stat_badge}`{vuln_text}{pet_text} &bull; 📞 `{r['phone']}`")
                 else:
                     st.info(f"No registered flats found in {target_tower} between floors {floor_range[0]}–{floor_range[1]}.")
 
@@ -1728,10 +1729,10 @@ with tab_registry:
     # Top KPI Cards
     stats = get_headcount_stats()
     kpi_c1, kpi_c2, kpi_c3, kpi_c4, kpi_c5 = st.columns(5)
-    kpi_c1.metric("🏢 Total Residents", f"{stats['total_residents']} Pers", f"{stats['total_flats']} Flats")
-    kpi_c2.metric("🟢 Safe at Lawn", f"{stats['safe_residents']} Pers", f"{stats['safe_flats']} Flats")
-    kpi_c3.metric("🔴 Confirmed Trapped", f"{stats['trapped_residents']} Pers", f"{stats['trapped_flats']} Flats")
-    kpi_c4.metric("⚪ Unaccounted", f"{stats['unaccounted_residents']} Pers", f"{stats['unaccounted_flats']} Flats")
+    kpi_c1.metric("🏢 Total Residents", f"{stats['total_residents']} People", f"{stats['total_flats']} Flats")
+    kpi_c2.metric("🟢 Safe at Lawn", f"{stats['safe_residents']} People", f"{stats['safe_flats']} Flats")
+    kpi_c3.metric("🔴 Confirmed Trapped", f"{stats['trapped_residents']} People", f"{stats['trapped_flats']} Flats")
+    kpi_c4.metric("⚪ Unaccounted", f"{stats['unaccounted_residents']} People", f"{stats['unaccounted_flats']} Flats")
     kpi_c5.metric("🚨 High-Risk Missing", f"{stats['vuln_unaccounted_flats']} Flats", f"Pets Inside: {stats['pets_inside_flats']}", delta_color="inverse")
 
     # Sub-tabs for the 3 operational views
