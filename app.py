@@ -228,142 +228,142 @@ st.markdown("""
 AVAILABLE_MODELS = {}
 _triple_weights = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_triplesensor_detector/weights/best.pt"
 if Path(_triple_weights).exists():
-    AVAILABLE_MODELS["🌟 Triple-Sensor Universal Model (FLIR + Seek + LLVIP)"] = _triple_weights
-AVAILABLE_MODELS["☀️ Daylight Optical Recon Mode (RGB / Visible Light)"] = "/Users/pratik/DisasterResponseSystem/yolo11n.pt"
-AVAILABLE_MODELS["⚡ Multi-Sensor Model (FLIR + Seek)"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_multisensor_detector-2/weights/best.pt"
-AVAILABLE_MODELS["⚠️ FLIR-Only Baseline Model"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/flir_thermal_detector/weights/best.pt"
+    AVAILABLE_MODELS["Triple-Sensor Universal (FLIR + Seek + LLVIP)"] = _triple_weights
+AVAILABLE_MODELS["Daylight Optical Recon (RGB / Visible Light)"] = "/Users/pratik/DisasterResponseSystem/yolo11n.pt"
+AVAILABLE_MODELS["Multi-Sensor Infrared (FLIR + Seek)"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_multisensor_detector-2/weights/best.pt"
+AVAILABLE_MODELS["FLIR-Only Baseline Infrared"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/flir_thermal_detector/weights/best.pt"
 
 # ---------------- USAR TACTICAL TARGET CATALOG & PRESETS ----------------
 USAR_TACTICAL_TARGETS = {
-    "👤 Person (Survivors)": {
+    "Person (Survivors)": {
         "coco_id": [0],
         "thermal_id": [0],
         "category": "Survivor",
-        "icon": "🔴",
+        "icon": "",
         "desc": "Human survivors & trapped residents",
         "locked": True
     },
-    "🎒 Backpack (Victim Marker)": {
+    "Backpack (Victim Marker)": {
         "coco_id": [24],
         "thermal_id": [],
         "category": "Rubble Clue",
-        "icon": "🎒",
+        "icon": "",
         "desc": "Victim anchor / dropped survival or personal bag",
         "locked": False
     },
-    "👜 Handbag / Pouch": {
+    "Handbag / Pouch": {
         "coco_id": [26],
         "thermal_id": [],
         "category": "Rubble Clue",
-        "icon": "👜",
+        "icon": "",
         "desc": "Emergency first-aid kit / personal belongings",
         "locked": False
     },
-    "🧳 Suitcase / Luggage": {
+    "Suitcase / Luggage": {
         "coco_id": [28],
         "thermal_id": [],
         "category": "Rubble Clue",
-        "icon": "🧳",
+        "icon": "",
         "desc": "Evacuation luggage / trapped belongings",
         "locked": False
     },
-    "📱 Cell Phone / Device": {
+    "Cell Phone / Device": {
         "coco_id": [67],
         "thermal_id": [],
         "category": "Rubble Clue",
-        "icon": "📱",
+        "icon": "",
         "desc": "Communication device / distress signal marker",
         "locked": False
     },
-    "🐕 Dog (Search K9 / Pet)": {
+    "Dog (Search K9 / Pet)": {
         "coco_id": [16],
         "thermal_id": [2],
         "category": "Canine & Pet",
-        "icon": "🐕",
+        "icon": "",
         "desc": "SAR canine search units or family dogs",
         "locked": False
     },
-    "🐈 Cat (Domestic Pet)": {
+    "Cat (Domestic Pet)": {
         "coco_id": [15, 21],
         "thermal_id": [2],
         "category": "Canine & Pet",
-        "icon": "🐈",
+        "icon": "",
         "desc": "Trapped domestic cats / pets (including fluffy & Persian breeds)",
         "locked": False
     },
-    "🚗 Car / Vehicle": {
+    "Car / Vehicle": {
         "coco_id": [2],
         "thermal_id": [1],
         "category": "Evacuation Obstacle",
-        "icon": "🚗",
+        "icon": "",
         "desc": "Vehicles blocking roads or society gates",
         "locked": False
     },
-    "🏍️ Motorcycle / Scooter": {
+    "Motorcycle / Scooter": {
         "coco_id": [3],
         "thermal_id": [1],
         "category": "Evacuation Obstacle",
-        "icon": "🏍️",
+        "icon": "",
         "desc": "Two-wheelers obstructing narrow alleys or exits",
         "locked": False
     },
-    "🚲 Bicycle": {
+    "Bicycle": {
         "coco_id": [1],
         "thermal_id": [1],
         "category": "Evacuation Obstacle",
-        "icon": "🚲",
+        "icon": "",
         "desc": "Bicycles obstructing stairs or corridors",
         "locked": False
     },
-    "🚚 Truck / Bus": {
+    "Truck / Bus": {
         "coco_id": [5, 7],
         "thermal_id": [1],
         "category": "Evacuation Obstacle",
-        "icon": "🚚",
+        "icon": "",
         "desc": "Heavy commercial vehicles blocking gates",
         "locked": False
     },
-    "🧯 Fire Hydrant": {
+    "Fire Hydrant": {
         "coco_id": [10],
         "thermal_id": [],
         "category": "Infrastructure",
-        "icon": "🧯",
+        "icon": "",
         "desc": "Emergency firefighting water connections",
         "locked": False
     }
 }
 
 MISSION_TARGET_PRESETS = {
-    "🐾 Primary Life & Pet Rescue (Person + Dogs + Cats)": [
-        "👤 Person (Survivors)",
-        "🐕 Dog (Search K9 / Pet)",
-        "🐈 Cat (Domestic Pet)"
+    "Primary Life & Domestic Animal Search": [
+        "Person (Survivors)",
+        "Dog (Search K9 / Pet)",
+        "Cat (Domestic Pet)"
     ],
-    "🌟 Complete USAR Search Grid (Person + Dog + Vehicle + Backpack)": [
-        "👤 Person (Survivors)",
-        "🐕 Dog (Search K9 / Pet)",
-        "🚗 Car / Vehicle",
-        "🎒 Backpack (Victim Marker)"
+    "Comprehensive USAR Search Grid": [
+        "Person (Survivors)",
+        "Dog (Search K9 / Pet)",
+        "Car / Vehicle",
+        "Backpack (Victim Marker)"
     ],
-    "🆘 Human Survivors Only (Zero Animal False Positives)": [
-        "👤 Person (Survivors)"
+    "Human Survivors Only (Zero False Positives)": [
+        "Person (Survivors)"
     ],
-    "🎒 Rubble Clues & Personal Belongings (Person + Bags + Phones)": [
-        "👤 Person (Survivors)",
-        "🎒 Backpack (Victim Marker)",
-        "👜 Handbag / Pouch",
-        "🧳 Suitcase / Luggage",
-        "📱 Cell Phone / Device"
+    "Rubble Clues & Personal Belongings": [
+        "Person (Survivors)",
+        "Backpack (Victim Marker)",
+        "Handbag / Pouch",
+        "Suitcase / Luggage",
+        "Cell Phone / Device"
     ],
-    "🚧 Evacuation Route Clearance (Person + Vehicles)": [
-        "👤 Person (Survivors)",
-        "🚗 Car / Vehicle",
-        "🏍️ Motorcycle / Scooter",
-        "🚲 Bicycle",
-        "🚚 Truck / Bus"
+    "Evacuation Route Clearance (Road Obstacles)": [
+        "Person (Survivors)",
+        "Car / Vehicle",
+        "Motorcycle / Scooter",
+        "Bicycle",
+        "Truck / Bus"
     ],
-    "🌐 Full Disaster Field Recon (All Tactical Targets)": list(USAR_TACTICAL_TARGETS.keys()),
-    "🎛️ Custom Mission Targets (User Selected)": []
+    "All Tactical Target Categories": list(USAR_TACTICAL_TARGETS.keys()),
+    "Custom Selection": []
 }
 
 TARGET_CLASSES = {
@@ -378,23 +378,21 @@ def resolve_detection_info(raw_cid: int, is_optical: bool = True, opt_names: dic
     """
     if is_optical:
         if raw_cid == 21:
-            return "Cat (Fluffy Breed)", "Canine & Pet", "🐈"
+            return "Cat (Fluffy Breed)", "Canine & Pet", ""
         for tname, tinfo in USAR_TACTICAL_TARGETS.items():
             if raw_cid in tinfo["coco_id"]:
                 clean_name = tname.split(" (")[0]
-                for prefix in ["👤 ", "🎒 ", "👜 ", "🧳 ", "📱 ", "🐕 ", "🐈 ", "🚗 ", "🏍️ ", "🚲 ", "🚚 ", "🧯 "]:
-                    clean_name = clean_name.replace(prefix, "")
-                return clean_name, tinfo["category"], tinfo["icon"]
+                return clean_name, tinfo["category"], ""
         if opt_names and raw_cid in opt_names:
-            return opt_names[raw_cid].title(), "General Object", "📦"
-        return f"Object-{raw_cid}", "General Object", "📦"
+            return opt_names[raw_cid].title(), "General Object", ""
+        return f"Object-{raw_cid}", "General Object", ""
     else:
         thermal_map = {
-            0: ("Person", "Survivor", "🔴"),
-            1: ("Obstacle / Vehicle", "Evacuation Obstacle", "🚗"),
-            2: ("Pet Animal (Dog / Cat)", "Canine & Pet", "🐾")
+            0: ("Person", "Survivor", ""),
+            1: ("Obstacle / Vehicle", "Evacuation Obstacle", ""),
+            2: ("Pet Animal (Dog / Cat)", "Canine & Pet", "")
         }
-        return thermal_map.get(raw_cid, (f"Class {raw_cid}", "Thermal Signature", "🟢"))
+        return thermal_map.get(raw_cid, (f"Class {raw_cid}", "Thermal Signature", ""))
 
 def check_thermal_hazards(img_np):
     """Detects extreme saturation (>248) indicative of gas fire or electrical transformer rupture."""
@@ -534,7 +532,7 @@ def load_yolo_model(path: str):
     return m
 
 # Sidebar
-st.sidebar.markdown("### 🏘️ SOCIETY CONFIGURATION")
+st.sidebar.markdown("### SOCIETY CONFIGURATION")
 society_name = st.sidebar.text_input("Housing Society / Complex Name", value="Green Valley Residency")
 safe_assembly_point = st.sidebar.text_input("Designated Safe Assembly Point", value="Central Community Lawn / Park")
 main_gate_name = st.sidebar.text_input("Primary Evacuation Gate", value="Main North Security Gate")
@@ -552,7 +550,7 @@ st.sidebar.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### ⚙️ TACTICAL CONFIGURATION")
+st.sidebar.markdown("### TACTICAL CONFIGURATION")
 
 selected_model_name = st.sidebar.selectbox(
     "Active Sensor Payload Model",
@@ -561,7 +559,7 @@ selected_model_name = st.sidebar.selectbox(
 )
 model_path = AVAILABLE_MODELS[selected_model_name]
 is_optical_model = "Daylight Optical" in selected_model_name
-enable_audio_siren = st.sidebar.checkbox("🔊 Tactical Audio Siren & Voice Alerts", value=True)
+enable_audio_siren = st.sidebar.checkbox("Tactical Audio Siren & Voice Alerts", value=True)
 
 try:
     model = load_yolo_model(model_path)
@@ -573,7 +571,7 @@ except Exception as e:
 
 # ---------------- MISSION TARGET SELECTOR ----------------
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🎯 MISSION TARGET SELECTOR")
+st.sidebar.markdown("### MISSION TARGET SELECTOR")
 
 selected_preset = st.sidebar.selectbox(
     "Mission Target Profile",
@@ -587,21 +585,21 @@ if "Custom" in selected_preset:
         "Active Search Targets (Person is locked default)",
         options=list(USAR_TACTICAL_TARGETS.keys()),
         default=[
-            "👤 Person (Survivors)",
-            "🐕 Dog (Search K9 / Pet)",
-            "🐈 Cat (Domestic Pet)"
+            "Person (Survivors)",
+            "Dog (Search K9 / Pet)",
+            "Cat (Domestic Pet)"
         ],
         help="Select any targets to search for. 'Person' is always enforced for life safety."
     )
 else:
     chosen_targets = MISSION_TARGET_PRESETS[selected_preset]
 
-# Enforce: "👤 Person (Survivors)" MUST ALWAYS BE PRESENT
-if "👤 Person (Survivors)" not in chosen_targets:
-    chosen_targets = ["👤 Person (Survivors)"] + [t for t in chosen_targets if t != "👤 Person (Survivors)"]
+# Enforce: "Person (Survivors)" MUST ALWAYS BE PRESENT
+if "Person (Survivors)" not in chosen_targets:
+    chosen_targets = ["Person (Survivors)"] + [t for t in chosen_targets if t != "Person (Survivors)"]
 
 # Extended COCO Objects Search (all 80 classes)
-with st.sidebar.expander("🔍 Search Extended Objects (Full 80 Classes)"):
+with st.sidebar.expander("Search Extended Objects (Full 80 Classes)"):
     st.caption("Search for any general COCO object in addition to tactical USAR targets:")
     curated_coco_ids = [0, 1, 2, 3, 5, 7, 10, 15, 16, 21, 24, 26, 28, 67]
     ext_options = sorted([
@@ -649,19 +647,19 @@ if not is_optical_model:
     non_thermal_chosen = [t for t in chosen_targets if len(USAR_TACTICAL_TARGETS[t]["thermal_id"]) == 0]
     if non_thermal_chosen or chosen_extended:
         st.sidebar.info(
-            "💡 **Sensor Note**: Inanimate items (Backpacks, Bags, Phones) do not radiate body heat. "
-            "To detect them, switch **Active Sensor Payload** above to **'☀️ Daylight Optical Recon Mode'**."
+            "Note: Inanimate items (Backpacks, Bags, Phones) do not radiate body heat. "
+            "To detect them, switch Active Sensor Payload to Daylight Optical Recon Mode."
         )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🎯 SENSOR TUNING")
+st.sidebar.markdown("### SENSOR CALIBRATION & SENSITIVITY")
 
 sensitivity_mode = st.sidebar.radio(
     "Operational Sensitivity Mode",
     options=[
-        "🎯 Balanced Operations (Standard)",
-        "🛡️ High Confidence (Zero False Alarms)",
-        "🚨 High Sensitivity (USAR / Faint Heat / Distant Victims)"
+        "Balanced Operations (Standard)",
+        "High Confidence (Zero False Alarms)",
+        "High Sensitivity (USAR / Faint Heat / Distant Victims)"
     ],
     index=0,
     help="Balanced Operations (35% confidence + Class-Agnostic NMS) prevents dual-class ghost detections (e.g. person classified as dog) and eliminates background noise."
@@ -711,11 +709,11 @@ def apply_thermal_enhancement(img_rgb):
 
 # ---------------- MAIN APPLICATION TABS ----------------
 tab_image, tab_video, tab_live, tab_dispatch, tab_registry = st.tabs([
-    "🛰️ Sector Imagery Recon", 
-    "🎥 Aerial Drone Video Recon", 
-    "📡 Live Tactical Stream",
-    "📋 Incident Command & Tactical SitRep",
-    "🏢 Society Directory & Evacuation Roster"
+    "Sector Reconnaissance", 
+    "Aerial Video Tracking", 
+    "Live Sensor Stream",
+    "Incident Command & SitRep",
+    "Resident Census & Evacuation Roster"
 ])
 
 # Global state to share detections with dispatch & SitRep
@@ -732,7 +730,7 @@ if "latest_detections" not in st.session_state:
 # TAB 1: SECTOR IMAGERY RECON
 # =======================================================
 with tab_image:
-    st.markdown("#### 📥 Reconnaissance Imagery Feed")
+    st.markdown("#### Reconnaissance Imagery Feed")
     
     c_input1, c_input2 = st.columns([1, 1])
     selected_img = None
@@ -759,21 +757,21 @@ with tab_image:
         sample_dir = Path("samples")
         
         with p_c1:
-            if st.button("🐕 Search K9 Unit", use_container_width=True):
+            if st.button("Search K9 Unit", use_container_width=True):
                 s_path = sample_dir / "seek_thermal_dog.jpg"
                 if s_path.exists():
                     selected_img = Image.open(s_path).convert("RGB")
                     img_name = "seek_thermal_dog.jpg"
                     
         with p_c2:
-            if st.button("👥 Collapsed Void Group", use_container_width=True):
+            if st.button("Collapsed Void Group", use_container_width=True):
                 s_path = sample_dir / "seek_thermal_group.jpg"
                 if s_path.exists():
                     selected_img = Image.open(s_path).convert("RGB")
                     img_name = "seek_thermal_group.jpg"
                     
         with p_c3:
-            if st.button("🚗 Rubble Route Scene", use_container_width=True):
+            if st.button("Rubble Route Scene", use_container_width=True):
                 s_path = sample_dir / "flir_thermal_street.jpg"
                 if s_path.exists():
                     selected_img = Image.open(s_path).convert("RGB")
@@ -895,18 +893,18 @@ with tab_image:
         col_intel, col_ops = st.columns([1.15, 1], gap="large")
 
         with col_intel:
-            st.markdown("##### 🛰️ Aerial Recon Feeds & Spatial Blueprint")
+            st.markdown("##### Aerial Reconnaissance Feeds & Spatial Blueprint")
             
             # Feeds: Raw Sensor & AI Overlay
             sub_col_raw, sub_col_ai = st.columns(2)
             with sub_col_raw:
                 caption_enh = "Thermal (CLAHE Active)" if enable_clahe else "Sensor Feed"
-                st.image(processed_input, caption=f"📡 Raw Sensor: {img_name} ({caption_enh})", use_container_width=True)
+                st.image(processed_input, caption=f"Raw Sensor: {img_name} ({caption_enh})", use_container_width=True)
             with sub_col_ai:
-                st.image(annotated_rgb, caption=f"🔍 AI Bounding Boxes ({dt_ms:.1f}ms latency)", use_container_width=True)
+                st.image(annotated_rgb, caption=f"AI Detection Overlay ({dt_ms:.1f}ms latency)", use_container_width=True)
 
             # 2D GIS Tactical Campus Blueprint
-            st.markdown(f"**🗺️ {society_name} // 2D Campus Blueprint (Towers A–D & Ring-Road)**")
+            st.markdown(f"**Campus Spatial Blueprint (Towers A–D & Ring-Road)**")
             map_html = create_society_tactical_map(
                 society_name=society_name,
                 safe_zone=safe_assembly_point,
@@ -921,7 +919,7 @@ with tab_image:
 
             # Target Thumbnails & Vitality Crops Gallery
             if crops:
-                with st.expander(f"🎯 Target Crops & Vitality Signatures ({len(crops)} Targets Extracted)", expanded=True):
+                with st.expander(f"Target Crops & Vitality Signatures ({len(crops)} Signatures)", expanded=True):
                     cols = st.columns(min(len(crops), 4))
                     for i, crop_info in enumerate(crops[:8]):
                         cname = crop_info[0]
@@ -933,38 +931,38 @@ with tab_image:
                             st.image(crop_arr, caption=caption_text, use_container_width=True)
 
             # Structural Rubble Heatmap
-            with st.expander("🧱 Structural Debris & Concrete Fragmentation Heatmap", expanded=False):
+            with st.expander("Structural Debris & Concrete Fragmentation Heatmap", expanded=False):
                 st.caption("Morphological edge frequency gradient highlighting concrete fragmentation, wall shearing, and ground debris.")
                 st.image(debris_overlay, caption=f"Structural Rubble Heatmap — Severity: {rubble_sev}% ({'IMPASSABLE' if is_debris_blocked else 'TRAVERSABLE'})", use_container_width=True)
 
         with col_ops:
-            st.markdown("##### 📋 Tactical Triage & Incident Dispatch")
+            st.markdown("##### Tactical Triage & Incident Dispatch")
             
             # Triage Metrics Grid
             st.markdown(f"""
             <div class="metric-grid">
                 <div class="tactical-card card-victim">
-                    <div class="card-label">🔴 Trapped Survivors</div>
+                    <div class="card-label">Trapped Survivors</div>
                     <div class="card-value val-victim">{survivors_count}</div>
                     <div style="font-size: 0.72rem; color: #8b949e;">Immediate extraction target</div>
                 </div>
                 <div class="tactical-card card-k9">
-                    <div class="card-label">🐾 Pets & Animals</div>
+                    <div class="card-label">Domestic Animals</div>
                     <div class="card-value val-k9">{pets_count}</div>
                     <div style="font-size: 0.72rem; color: #8b949e;">Search K9s & family pets</div>
                 </div>
                 <div class="tactical-card card-clue">
-                    <div class="card-label">🎒 Rubble Clues</div>
+                    <div class="card-label">Rubble Clues & Evidence</div>
                     <div class="card-value val-clue">{clues_count}</div>
                     <div style="font-size: 0.72rem; color: #8b949e;">Victim anchors / Bags</div>
                 </div>
                 <div class="tactical-card card-vehicle">
-                    <div class="card-label">🚗 Road Obstacles</div>
+                    <div class="card-label">Road Obstructions</div>
                     <div class="card-value val-vehicle">{obs_count}</div>
                     <div style="font-size: 0.72rem; color: #8b949e;">Access clearance needed</div>
                 </div>
                 <div class="tactical-card card-total">
-                    <div class="card-label">🟢 Total Targets</div>
+                    <div class="card-label">Total Signatures</div>
                     <div class="card-value val-total">{total_count}</div>
                     <div style="font-size: 0.72rem; color: #8b949e;">Sweep Latency: {dt_ms:.1f} ms</div>
                 </div>
@@ -975,7 +973,7 @@ with tab_image:
             if multi_victim:
                 st.markdown("""
                 <div class="alert-box alert-critical">
-                    <strong>🚨 CRITICAL USAR ALERT: HIGH-DENSITY COLLAPSED VOID!</strong><br>
+                    <strong>[CRITICAL USAR ALERT] High-Density Collapsed Void Detected</strong><br>
                     Multiple thermal signatures detected in tight proximity (&lt;220px). High probability of residents trapped in common room/slab collapse. Dispatch Heavy Rescue Void Shoring team immediately.
                 </div>
                 """, unsafe_allow_html=True)
@@ -983,7 +981,7 @@ with tab_image:
             elif len(people_boxes) == 1:
                 st.markdown("""
                 <div class="alert-box alert-critical">
-                    <strong>⚠️ PRIORITY 2 ALERT: ISOLATED RESIDENT DETECTED</strong><br>
+                    <strong>[PRIORITY 2 ALERT] Isolated Resident Signature Detected</strong><br>
                     Single heat signature detected. Dispatch technical search camera & acoustic listening team to establish contact.
                 </div>
                 """, unsafe_allow_html=True)
@@ -996,7 +994,7 @@ with tab_image:
                 pet_summary = ", ".join(pet_names) if pet_names else f"{pets_count} Pet Animal(s)"
                 st.markdown(f"""
                 <div class="alert-box alert-k9">
-                    <strong>🐾 DOMESTIC PET / K9 TARGET CONFIRMED:</strong> {pet_summary} located. Coordinate animal containment crates alongside family extraction.
+                    <strong>[CONFIRMED] Domestic Animals Located:</strong> {pet_summary} located. Coordinate animal containment crates alongside family extraction.
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1006,14 +1004,14 @@ with tab_image:
                     clue_breakdown = f"{clues_count} Rubble Items"
                 st.markdown(f"""
                 <div class="alert-box alert-clue">
-                    <strong>🎒 RUBBLE CLUES / VICTIM ANCHORS IDENTIFIED:</strong> {clue_breakdown}. Personal belongings mark potential trapped victim coordinates. Prioritize acoustic listening devices in this sector.
+                    <strong>[VICTIM ANCHOR] Personal Effects / Clues Identified:</strong> {clue_breakdown}. Personal belongings mark potential trapped victim coordinates. Prioritize acoustic listening devices in this sector.
                 </div>
                 """, unsafe_allow_html=True)
 
             if gate_blocked:
                 st.markdown(f"""
                 <div class="alert-box alert-critical">
-                    <strong>🚨 GATE ACCESS BLOCKED: {main_gate_name}!</strong><br>
+                    <strong>[ACCESS ALERT] Primary Entrance Gate Obstructed ({main_gate_name})</strong><br>
                     {obs_count} obstacle(s) detected obstructing {main_gate_name}. Ingress for Fire Brigade ladder trucks is blocked. Dispatch security to clear access road.
                 </div>
                 """, unsafe_allow_html=True)
@@ -1022,7 +1020,7 @@ with tab_image:
             else:
                 st.markdown(f"""
                 <div class="alert-box alert-k9" style="border-left: 4px solid #2ea043; background: rgba(46, 160, 67, 0.12);">
-                    <strong>🟢 ACCESS GATE ({main_gate_name}): CLEAR</strong><br>
+                    <strong>[STATUS NORMAL] Primary Entrance Gate Clear ({main_gate_name})</strong><br>
                     Perimeter fire lane and primary entrance are clear for ambulances and heavy rescue vehicles.
                 </div>
                 """, unsafe_allow_html=True)
@@ -1030,7 +1028,7 @@ with tab_image:
             if is_thermal_hazard:
                 st.markdown("""
                 <div class="alert-box alert-critical">
-                    <strong>🔥 SECONDARY UTILITY HAZARD (&gt;300°C)!</strong><br>
+                    <strong>[SECONDARY HAZARD] Utility Corridor Thermal Anomaly (&gt;300°C)</strong><br>
                     High thermal pixel saturation in utility yard. Risk of gas rupture or electrical transformer fire. Evacuate adjacent towers and shut main PNG valves.
                 </div>
                 """, unsafe_allow_html=True)
@@ -1040,20 +1038,20 @@ with tab_image:
             if is_debris_blocked:
                 st.markdown(f"""
                 <div class="alert-box alert-critical">
-                    <strong>🚧 INTERNAL ROADWAYS IMPASSABLE ({rubble_sev}% Debris Density)!</strong><br>
+                    <strong>[IMPASSABLE] Internal Roadways Blocked with Concrete Rubble ({rubble_sev}% Density)</strong><br>
                     Severe concrete rubble collapse on society ring-road. Debris clearance required before ambulances can pass.
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="alert-box alert-k9" style="border-left: 4px solid #2ea043; background: rgba(46, 160, 67, 0.12);">
-                    <strong>🟢 INTERNAL ROADWAYS TRAVERSABLE ({rubble_sev}% Debris Density)</strong><br>
+                    <strong>[TRAVERSABLE] Internal Roadways Clear ({rubble_sev}% Density)</strong><br>
                     Ground surface clear of major concrete blockages. Stretcher squads and vehicles have unhindered path access.
                 </div>
                 """, unsafe_allow_html=True)
 
             # Sector Resident Cross-Reference (Smart Link)
-            st.markdown(f"**🏢 Sector Resident Cross-Reference (The Smart Link)**")
+            st.markdown(f"**Sector Resident Cross-Reference (Smart Link)**")
             st.caption("Cross-reference camera sector coordinates with registered residents, vulnerabilities, and emergency contacts:")
             
             sc_c1, sc_c2 = st.columns([1, 1.3])
@@ -1065,11 +1063,11 @@ with tab_image:
                 if not sec_residents.empty:
                     st.markdown(f"**{len(sec_residents)} Flat(s) in {target_tower} (Floors {floor_range[0]}–{floor_range[1]}):**")
                     for _, r in sec_residents.iterrows():
-                        stat_badge = "🟢 SAFE" if r['evacuation_status'] == "SAFE_AT_ASSEMBLY" else ("🔴 TRAPPED" if r['evacuation_status'] == "CONFIRMED_TRAPPED" else "⚪ UNACCOUNTED")
-                        vuln_text = f" | ⚠️ **{r['vulnerability']}**" if r['vulnerability'] != "None (Able-bodied)" else ""
-                        pet_text = f" | 🐾 **{r['pets']}**" if r['pets'] != "None" else ""
+                        stat_badge = "[SAFE]" if r['evacuation_status'] == "SAFE_AT_ASSEMBLY" else ("[TRAPPED]" if r['evacuation_status'] == "CONFIRMED_TRAPPED" else "[UNACCOUNTED]")
+                        vuln_text = f" | Special Need: **{r['vulnerability']}**" if r['vulnerability'] != "None (Able-bodied)" else ""
+                        pet_text = f" | Pets: **{r['pets']}**" if r['pets'] != "None" else ""
                         occ_str = f"{r['occupants_count']} resident" if r['occupants_count'] == 1 else f"{r['occupants_count']} residents"
-                        st.markdown(f"- **Flat {r['flat_number']}** ({r['primary_resident']}, {occ_str}): `{stat_badge}`{vuln_text}{pet_text} &bull; 📞 `{r['phone']}`")
+                        st.markdown(f"- **Flat {r['flat_number']}** ({r['primary_resident']}, {occ_str}): `{stat_badge}`{vuln_text}{pet_text} &bull; Tel: `{r['phone']}`")
                 else:
                     st.info(f"No registered flats in {target_tower} floors {floor_range[0]}–{floor_range[1]}.")
 
@@ -1090,14 +1088,14 @@ with tab_image:
                     is_rubble_blocked=is_debris_blocked
                 )
                 st.download_button(
-                    label="📄 Download USAR SitRep (PDF)",
+                    label="Download Official USAR SitRep (PDF)",
                     data=pdf_bytes,
                     file_name=f"USAR_Report_{society_name.replace(' ', '_')}_{int(time.time())}.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )
             with act_c2:
-                with st.popover("📢 Generate RWA WhatsApp Alert"):
+                with st.popover("Generate RWA WhatsApp Broadcast"):
                     broadcast_txt = f"""🚨 *URGENT RWA EARTHQUAKE DIRECTIVE* 🚨
 *Complex:* {society_name} | *Time:* {time.strftime('%Y-%m-%d %H:%M:%S')}
 *Reconnaissance System:* USAR-AI Aerial Drone Sweep
@@ -1604,7 +1602,7 @@ with tab_dispatch:
         soc_c4.success(f"**Roadways:**\n🟢 TRAVERSABLE ({latest_rubble[0]}% Rubble)")
 
     # Multi-Tower Resident Directory & Evacuation Accounting
-    st.markdown("##### 🏢 Multi-Tower Resident Accounting & Evacuation Reconciliation")
+    st.markdown("##### Multi-Tower Resident Accounting & Evacuation Reconciliation")
     c_p = len([d for d in current_dets if d.get('Category') == 'Person' or d.get('Tactical Group') == 'Survivor']) if current_dets else 0
     c_d = len([d for d in current_dets if d.get('Category') in ['Dog', 'Cat'] or d.get('Tactical Group') == 'Canine & Pet']) if current_dets else 0
     c_o = len([d for d in current_dets if d.get('Tactical Group') == 'Evacuation Obstacle' or d.get('Category') in ['Obstacle / Vehicle', 'Car', 'Bicycle', 'Motorcycle', 'Truck', 'Bus']]) if current_dets else 0
@@ -1612,22 +1610,22 @@ with tab_dispatch:
 
     stats = get_headcount_stats()
     acc_c1, acc_c2, acc_c3, acc_c4 = st.columns(4)
-    acc_c1.metric("🏢 Total Registered", f"{stats['total_residents']} Residents", f"{stats['total_flats']} Flats")
-    acc_c2.metric("🌳 Verified Safe in Lawn", f"{stats['safe_residents']} Residents", f"{stats['safe_flats']} Flats")
-    acc_c3.metric("🔴 Trapped in Towers", f"{stats['trapped_residents']} Residents", f"{stats['trapped_flats']} Flats")
-    acc_c4.metric("⚠️ Unaccounted / Missing", f"{stats['unaccounted_residents']} Residents", f"{stats['unaccounted_flats']} Flats")
+    acc_c1.metric("Total Registered", f"{stats['total_residents']} Residents", f"{stats['total_flats']} Flats")
+    acc_c2.metric("Verified Safe in Lawn", f"{stats['safe_residents']} Residents", f"{stats['safe_flats']} Flats")
+    acc_c3.metric("Trapped in Towers", f"{stats['trapped_residents']} Residents", f"{stats['trapped_flats']} Flats")
+    acc_c4.metric("Unaccounted / Missing", f"{stats['unaccounted_residents']} Residents", f"{stats['unaccounted_flats']} Flats")
 
     pct_accounted = min(1.0, (stats['safe_residents'] + stats['trapped_residents']) / max(1, stats['total_residents']))
     st.progress(pct_accounted)
     st.caption(f"**Safety Roster:** {pct_accounted:.1%} of society population accounted for ({stats['safe_residents'] + stats['trapped_residents']} / {stats['total_residents']} residents).")
     if c_d > 0:
-        st.success(f"🐾 **Domestic Pets & Animals Accounted:** {c_d} pet(s) (dogs/cats) identified in sweep. Ready for family reunification at {safe_assembly_point}.")
+        st.success(f"**Domestic Pets Accounted:** {c_d} pet(s) (dogs/cats) identified in sweep. Ready for family reunification at {safe_assembly_point}.")
     if c_clues > 0:
-        st.info(f"🎒 **Rubble Clues & Victim Anchors Located:** {c_clues} item(s) (backpacks, bags, phones) cataloged in disaster sector.")
+        st.info(f"**Rubble Clues & Evidence Located:** {c_clues} item(s) (backpacks, bags, phones) cataloged in disaster sector.")
 
     # Interactive Tactical Map in Command Center
     st.markdown("---")
-    with st.expander("🗺️ Society Tactical GIS Aerial Layout Map", expanded=True):
+    with st.expander("Society Tactical GIS Aerial Layout Map", expanded=True):
         map_html = create_society_tactical_map(
             society_name=society_name,
             safe_zone=safe_assembly_point,
@@ -1848,31 +1846,31 @@ We have an active residential structural collapse/earthquake emergency.
 # TAB 5: SOCIETY RESIDENT DIRECTORY & EVACUATION ROSTER
 # =======================================================
 with tab_registry:
-    st.markdown(f"#### 🏢 {society_name} // Resident Directory & Evacuation Roster")
+    st.markdown(f"#### {society_name} // Resident Directory & Evacuation Roster")
     st.caption("100% Offline SQLite database for gate headcount tally, high-vulnerability rescue tracking, and flat management.")
 
     # Top KPI Cards
     stats = get_headcount_stats()
     kpi_c1, kpi_c2, kpi_c3, kpi_c4, kpi_c5 = st.columns(5)
-    kpi_c1.metric("🏢 Total Residents", f"{stats['total_residents']} People", f"{stats['total_flats']} Flats")
-    kpi_c2.metric("🟢 Safe at Lawn", f"{stats['safe_residents']} People", f"{stats['safe_flats']} Flats")
-    kpi_c3.metric("🔴 Confirmed Trapped", f"{stats['trapped_residents']} People", f"{stats['trapped_flats']} Flats")
-    kpi_c4.metric("⚪ Unaccounted", f"{stats['unaccounted_residents']} People", f"{stats['unaccounted_flats']} Flats")
-    kpi_c5.metric("🚨 High-Risk Missing", f"{stats['vuln_unaccounted_flats']} Flats", f"Pets Inside: {stats['pets_inside_flats']}", delta_color="inverse")
+    kpi_c1.metric("Total Residents", f"{stats['total_residents']} People", f"{stats['total_flats']} Flats")
+    kpi_c2.metric("Safe at Lawn", f"{stats['safe_residents']} People", f"{stats['safe_flats']} Flats")
+    kpi_c3.metric("Confirmed Trapped", f"{stats['trapped_residents']} People", f"{stats['trapped_flats']} Flats")
+    kpi_c4.metric("Unaccounted", f"{stats['unaccounted_residents']} People", f"{stats['unaccounted_flats']} Flats")
+    kpi_c5.metric("High-Risk Missing", f"{stats['vuln_unaccounted_flats']} Flats", f"Pets Inside: {stats['pets_inside_flats']}", delta_color="inverse")
 
     # Sub-tabs for the 3 operational views
     sub_view_tally, sub_view_priority, sub_view_editor = st.tabs([
-        "🛡️ Gate Headcount & Check-In",
-        "🚨 High-Vulnerability Priority Board",
-        "⚙️ Resident Directory Editor & CSV"
+        "Gate Headcount & Check-In",
+        "High-Vulnerability Priority Board",
+        "Resident Directory Editor & CSV"
     ])
 
     with sub_view_tally:
-        st.markdown("##### 🛡️ Gate Check-In & Evacuation Tally")
+        st.markdown("##### Gate Check-In & Evacuation Tally")
         st.caption("Security guards and triage volunteers at the gate can rapidly mark residents as Safe or Trapped.")
         
         tc_f1, tc_f2, tc_f3 = st.columns([2, 1, 1])
-        search_txt = tc_f1.text_input("🔍 Quick Search (Flat No, Resident Name, Phone)", placeholder="Type e.g. 201, Sharma, 98201...", key="tally_search")
+        search_txt = tc_f1.text_input("Quick Search (Flat No, Resident Name, Phone)", placeholder="Type e.g. 201, Sharma, 98201...", key="tally_search")
         tower_filt = tc_f2.selectbox("Filter Tower", ["All Towers", "Tower A", "Tower B", "Tower C", "Tower D"], key="tally_tower")
         status_filt = tc_f3.selectbox("Filter Evacuation Status", ["All Statuses", "UNACCOUNTED", "SAFE_AT_ASSEMBLY", "CONFIRMED_TRAPPED", "OFF_SITE"], key="tally_status")
         
