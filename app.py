@@ -1386,7 +1386,7 @@ with tab_video:
                         curr_k9s += 1
                     
                     color = cat_colors.get(cat, (0, 245, 155))
-                    label = f"{cname} #{tid} ({conf_val:.0%})"
+                    label = f"{cname} ({conf_val:.0%})"
 
                     cv2.rectangle(draw_img, (bx1, by1), (bx2, by2), color, 2)
                     cv2.putText(draw_img, label, (bx1, max(15, by1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
