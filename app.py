@@ -108,6 +108,7 @@ st.markdown("""
         transform: translateY(-2px);
     }
     .card-victim { border-top: 4px solid #ff3366; }
+    .card-clue { border-top: 4px solid #a371f7; }
     .card-k9 { border-top: 4px solid #00f0ff; }
     .card-vehicle { border-top: 4px solid #ffd166; }
     .card-total { border-top: 4px solid #00f59b; }
@@ -126,6 +127,7 @@ st.markdown("""
         letter-spacing: 1px;
     }
     .val-victim { color: #ff3366; text-shadow: 0 0 12px rgba(255, 51, 102, 0.3); }
+    .val-clue { color: #a371f7; text-shadow: 0 0 12px rgba(163, 113, 247, 0.4); }
     .val-k9 { color: #00f0ff; text-shadow: 0 0 12px rgba(0, 240, 255, 0.3); }
     .val-vehicle { color: #ffd166; text-shadow: 0 0 12px rgba(255, 209, 102, 0.3); }
     .val-total { color: #00f59b; text-shadow: 0 0 12px rgba(0, 245, 155, 0.3); }
@@ -141,6 +143,10 @@ st.markdown("""
     .alert-critical {
         border-color: #ff3366;
         background: rgba(255, 51, 102, 0.08);
+    }
+    .alert-clue {
+        border-color: #a371f7;
+        background: rgba(163, 113, 247, 0.08);
     }
     .alert-k9 {
         border-color: #00f0ff;
@@ -198,11 +204,160 @@ AVAILABLE_MODELS["☀️ Daylight Optical Recon Mode (RGB / Visible Light)"] = "
 AVAILABLE_MODELS["⚡ Multi-Sensor Model (FLIR + Seek)"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_multisensor_detector-2/weights/best.pt"
 AVAILABLE_MODELS["⚠️ FLIR-Only Baseline Model"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/flir_thermal_detector/weights/best.pt"
 
+# ---------------- USAR TACTICAL TARGET CATALOG & PRESETS ----------------
+USAR_TACTICAL_TARGETS = {
+    "👤 Person (Survivors)": {
+        "coco_id": [0],
+        "thermal_id": [0],
+        "category": "Survivor",
+        "icon": "🔴",
+        "desc": "Human survivors & trapped residents",
+        "locked": True
+    },
+    "🎒 Backpack (Victim Marker)": {
+        "coco_id": [24],
+        "thermal_id": [],
+        "category": "Rubble Clue",
+        "icon": "🎒",
+        "desc": "Victim anchor / dropped survival or personal bag",
+        "locked": False
+    },
+    "👜 Handbag / Pouch": {
+        "coco_id": [26],
+        "thermal_id": [],
+        "category": "Rubble Clue",
+        "icon": "👜",
+        "desc": "Emergency first-aid kit / personal belongings",
+        "locked": False
+    },
+    "🧳 Suitcase / Luggage": {
+        "coco_id": [28],
+        "thermal_id": [],
+        "category": "Rubble Clue",
+        "icon": "🧳",
+        "desc": "Evacuation luggage / trapped belongings",
+        "locked": False
+    },
+    "📱 Cell Phone / Device": {
+        "coco_id": [67],
+        "thermal_id": [],
+        "category": "Rubble Clue",
+        "icon": "📱",
+        "desc": "Communication device / distress signal marker",
+        "locked": False
+    },
+    "🐕 Dog (Search K9 / Pet)": {
+        "coco_id": [16],
+        "thermal_id": [2],
+        "category": "Canine & Pet",
+        "icon": "🐕",
+        "desc": "SAR canine search units or family dogs",
+        "locked": False
+    },
+    "🐈 Cat (Domestic Pet)": {
+        "coco_id": [15],
+        "thermal_id": [2],
+        "category": "Canine & Pet",
+        "icon": "🐈",
+        "desc": "Trapped domestic cats/pets",
+        "locked": False
+    },
+    "🚗 Car / Vehicle": {
+        "coco_id": [2],
+        "thermal_id": [1],
+        "category": "Evacuation Obstacle",
+        "icon": "🚗",
+        "desc": "Vehicles blocking roads or society gates",
+        "locked": False
+    },
+    "🏍️ Motorcycle / Scooter": {
+        "coco_id": [3],
+        "thermal_id": [1],
+        "category": "Evacuation Obstacle",
+        "icon": "🏍️",
+        "desc": "Two-wheelers obstructing narrow alleys or exits",
+        "locked": False
+    },
+    "🚲 Bicycle": {
+        "coco_id": [1],
+        "thermal_id": [1],
+        "category": "Evacuation Obstacle",
+        "icon": "🚲",
+        "desc": "Bicycles obstructing stairs or corridors",
+        "locked": False
+    },
+    "🚚 Truck / Bus": {
+        "coco_id": [5, 7],
+        "thermal_id": [1],
+        "category": "Evacuation Obstacle",
+        "icon": "🚚",
+        "desc": "Heavy commercial vehicles blocking gates",
+        "locked": False
+    },
+    "🧯 Fire Hydrant": {
+        "coco_id": [10],
+        "thermal_id": [],
+        "category": "Infrastructure",
+        "icon": "🧯",
+        "desc": "Emergency firefighting water connections",
+        "locked": False
+    }
+}
+
+MISSION_TARGET_PRESETS = {
+    "🆘 Life Rescue Priority (Person Only)": [
+        "👤 Person (Survivors)"
+    ],
+    "🎒 Rubble Clues & Personal Belongings (Person + Bags + Phones)": [
+        "👤 Person (Survivors)",
+        "🎒 Backpack (Victim Marker)",
+        "👜 Handbag / Pouch",
+        "🧳 Suitcase / Luggage",
+        "📱 Cell Phone / Device"
+    ],
+    "🚧 Evacuation Route Clearance (Person + Vehicles)": [
+        "👤 Person (Survivors)",
+        "🚗 Car / Vehicle",
+        "🏍️ Motorcycle / Scooter",
+        "🚲 Bicycle",
+        "🚚 Truck / Bus"
+    ],
+    "🐕 Life & Pet Evacuation (Person + Dogs + Cats)": [
+        "👤 Person (Survivors)",
+        "🐕 Dog (Search K9 / Pet)",
+        "🐈 Cat (Domestic Pet)"
+    ],
+    "🌐 Full Disaster Field Recon (All Tactical Targets)": list(USAR_TACTICAL_TARGETS.keys()),
+    "🎛️ Custom Mission Targets (User Selected)": []
+}
+
 TARGET_CLASSES = {
     0: "Person",
     1: "Obstacle / Vehicle",
     2: "Dog"
 }
+
+def resolve_detection_info(raw_cid: int, is_optical: bool = True, opt_names: dict = None):
+    """
+    Resolves raw model class ID into (display_name, tactical_category, icon)
+    """
+    if is_optical:
+        for tname, tinfo in USAR_TACTICAL_TARGETS.items():
+            if raw_cid in tinfo["coco_id"]:
+                clean_name = tname.split(" (")[0]
+                for prefix in ["👤 ", "🎒 ", "👜 ", "🧳 ", "📱 ", "🐕 ", "🐈 ", "🚗 ", "🏍️ ", "🚲 ", "🚚 ", "🧯 "]:
+                    clean_name = clean_name.replace(prefix, "")
+                return clean_name, tinfo["category"], tinfo["icon"]
+        if opt_names and raw_cid in opt_names:
+            return opt_names[raw_cid].title(), "General Object", "📦"
+        return f"Object-{raw_cid}", "General Object", "📦"
+    else:
+        thermal_map = {
+            0: ("Person", "Survivor", "🔴"),
+            1: ("Obstacle / Vehicle", "Evacuation Obstacle", "🚗"),
+            2: ("Dog", "Canine & Pet", "🐕")
+        }
+        return thermal_map.get(raw_cid, (f"Class {raw_cid}", "Thermal Signature", "🟢"))
 
 def check_thermal_hazards(img_np):
     """Detects extreme saturation (>248) indicative of gas fire or electrical transformer rupture."""
@@ -352,6 +507,84 @@ except Exception as e:
     st.sidebar.error(f"Error loading model: {e}")
     st.stop()
 
+# ---------------- MISSION TARGET SELECTOR ----------------
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🎯 MISSION TARGET SELECTOR")
+
+selected_preset = st.sidebar.selectbox(
+    "Mission Target Profile",
+    options=list(MISSION_TARGET_PRESETS.keys()),
+    index=1,
+    help="Select a standardized search mission profile or customize exact targets. 'Person' is always preserved by default."
+)
+
+if "Custom" in selected_preset:
+    chosen_targets = st.sidebar.multiselect(
+        "Active Search Targets (Person is locked default)",
+        options=list(USAR_TACTICAL_TARGETS.keys()),
+        default=["👤 Person (Survivors)", "🎒 Backpack (Victim Marker)"],
+        help="Select any targets to search for. 'Person' is always enforced for life safety."
+    )
+else:
+    chosen_targets = MISSION_TARGET_PRESETS[selected_preset]
+
+# Enforce: "👤 Person (Survivors)" MUST ALWAYS BE PRESENT
+if "👤 Person (Survivors)" not in chosen_targets:
+    chosen_targets = ["👤 Person (Survivors)"] + [t for t in chosen_targets if t != "👤 Person (Survivors)"]
+
+# Extended COCO Objects Search (all 80 classes)
+with st.sidebar.expander("🔍 Search Extended Objects (Full 80 Classes)"):
+    st.caption("Search for any general COCO object in addition to tactical USAR targets:")
+    curated_coco_ids = [0, 1, 2, 3, 5, 7, 10, 15, 16, 24, 26, 28, 67]
+    ext_options = sorted([
+        name.title() for cid, name in optical_model.names.items()
+        if cid not in curated_coco_ids
+    ])
+    chosen_extended = st.multiselect(
+        "Additional Objects",
+        options=ext_options,
+        default=[],
+        help="Detect additional objects (e.g., laptop, chair, bottle, etc.)."
+    )
+
+# Compute active COCO and thermal class lists
+active_coco_classes = set()
+active_thermal_classes = set()
+
+for t in chosen_targets:
+    if t in USAR_TACTICAL_TARGETS:
+        for cid in USAR_TACTICAL_TARGETS[t]["coco_id"]:
+            active_coco_classes.add(cid)
+        for tid in USAR_TACTICAL_TARGETS[t]["thermal_id"]:
+            active_thermal_classes.add(tid)
+
+ext_name_to_id = {name.title(): cid for cid, name in optical_model.names.items()}
+for ext_item in chosen_extended:
+    if ext_item in ext_name_to_id:
+        active_coco_classes.add(ext_name_to_id[ext_item])
+
+active_coco_classes = sorted(list(active_coco_classes))
+active_thermal_classes = sorted(list(active_thermal_classes))
+if not active_thermal_classes:
+    active_thermal_classes = [0]  # Minimum Person for thermal
+
+# Status badge for active targets
+preview_tags = [t.split(" (")[0] for t in chosen_targets[:3]]
+active_summary = " • ".join(preview_tags)
+if len(chosen_targets) > 3:
+    active_summary += f" +{len(chosen_targets)-3} more"
+if chosen_extended:
+    active_summary += f" • {len(chosen_extended)} ext"
+st.sidebar.markdown(f"<small style='color: #58a6ff;'><b>Active Targets:</b> {active_summary}</small>", unsafe_allow_html=True)
+
+if not is_optical_model:
+    non_thermal_chosen = [t for t in chosen_targets if len(USAR_TACTICAL_TARGETS[t]["thermal_id"]) == 0]
+    if non_thermal_chosen or chosen_extended:
+        st.sidebar.info(
+            "💡 **Sensor Note**: Inanimate items (Backpacks, Bags, Phones) do not radiate body heat. "
+            "To detect them, switch **Active Sensor Payload** above to **'☀️ Daylight Optical Recon Mode'**."
+        )
+
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🎯 SENSOR TUNING")
 
@@ -486,36 +719,29 @@ with tab_image:
             caption_enh = "Thermal View (CLAHE Boost Active)" if enable_clahe else "Raw Thermal Sensor View"
             st.image(processed_input, caption=caption_enh, use_container_width=True)
 
-        # Always run model on clean, authentic sensor imagery (unmodified weights distribution)
+        # Active classes passed to model.predict based on payload modality
+        target_classes_arg = active_coco_classes if is_optical_model else active_thermal_classes
+
         t0 = time.time()
-        if is_optical_model:
-            results = model.predict(
-                source=selected_img,
-                conf=confidence,
-                iou=iou_thresh,
-                agnostic_nms=True,
-                classes=[0, 1, 2, 3, 16],
-                verbose=False
-            )[0]
-        else:
-            results = model.predict(
-                source=selected_img,
-                conf=confidence,
-                iou=iou_thresh,
-                agnostic_nms=True,
-                verbose=False
-            )[0]
+        results = model.predict(
+            source=selected_img,
+            conf=confidence,
+            iou=iou_thresh,
+            agnostic_nms=True,
+            classes=target_classes_arg,
+            verbose=False
+        )[0]
         dt_ms = (time.time() - t0) * 1000
 
         print(f"=== INFERENCE DEBUG ===", flush=True)
         print(f"Image: {img_name} | Size: {selected_img.size} | Mode: {selected_img.mode}", flush=True)
-        print(f"Confidence Slider: {confidence} | IoU: {iou_thresh}", flush=True)
+        print(f"Confidence Slider: {confidence} | IoU: {iou_thresh} | Target Classes: {target_classes_arg}", flush=True)
         print(f"Raw Boxes in results: {len(results.boxes) if results.boxes is not None else 0}", flush=True)
         if results.boxes is not None and len(results.boxes) > 0:
             for b in results.boxes:
                 raw_cls = int(b.cls[0])
-                cname = TARGET_CLASSES.get({0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(raw_cls, raw_cls) if is_optical_model else raw_cls)
-                print(f"  -> Cls: {raw_cls} ({cname}) | Conf: {float(b.conf[0]):.3f} | Box: {b.xyxy[0].tolist()}", flush=True)
+                cname, cat, icon = resolve_detection_info(raw_cls, is_optical=is_optical_model, opt_names=optical_model.names)
+                print(f"  -> Cls: {raw_cls} ({icon} {cname} / {cat}) | Conf: {float(b.conf[0]):.3f} | Box: {b.xyxy[0].tolist()}", flush=True)
         else:
             test_res = model.predict(source=selected_img, conf=0.01, verbose=False)[0]
             print(f"DEBUG: No boxes at {confidence:.2f}! Top hits at 0.01 threshold: {[f'{test_res.names[int(b.cls[0])]}: {float(b.conf[0]):.3f}' for b in test_res.boxes[:5]]}", flush=True)
@@ -528,42 +754,51 @@ with tab_image:
             st.markdown(f"**🔍 AI Tactical Target Overlay (`{dt_ms:.1f}ms`)**")
             st.image(annotated_rgb, caption=f"Inference Engine: {selected_model_name}", use_container_width=True)
 
-        # Parse Detections
+        # Parse Detections dynamically
         detections = []
         crops = []
-        counts = {"Person": 0, "Obstacle / Vehicle": 0, "Dog": 0}
+        counts_by_category = {
+            "Survivor": 0,
+            "Rubble Clue": 0,
+            "Evacuation Obstacle": 0,
+            "Canine & Pet": 0,
+            "Infrastructure": 0,
+            "General Object": 0
+        }
+        counts_by_name = Counter()
         orig_np = np.array(processed_input)
         
         if results.boxes is not None:
             for idx, box in enumerate(results.boxes):
                 raw_cid = int(box.cls[0].item())
-                if is_optical_model:
-                    coco_to_usar = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}
-                    if raw_cid not in coco_to_usar:
-                        continue
-                    cid = coco_to_usar[raw_cid]
-                else:
-                    cid = raw_cid
+                cname, cat, icon = resolve_detection_info(raw_cid, is_optical=is_optical_model, opt_names=optical_model.names)
                 score = float(box.conf[0].item())
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
-                cname = TARGET_CLASSES.get(cid, f"Class {cid}")
-                if cname in counts:
-                    counts[cname] += 1
-                elif cname == "Car" and "Obstacle / Vehicle" in counts:
-                    counts["Obstacle / Vehicle"] += 1
+                
+                counts_by_category[cat] = counts_by_category.get(cat, 0) + 1
+                counts_by_name[cname] += 1
                 
                 # Extract crop thumbnail & compute thermal vitality
                 ix1, iy1, ix2, iy2 = max(0, int(x1)), max(0, int(y1)), min(orig_np.shape[1], int(x2)), min(orig_np.shape[0], int(y2))
-                vit_status, delta_t, risk_badge = ("N/A", 0.0, "N/A")
+                vit_status, delta_t, risk_badge = ("N/A (Visual Target)", 0.0, "N/A")
                 if ix2 > ix1 and iy2 > iy1:
                     crop = orig_np[iy1:iy2, ix1:ix2]
                     if cname == "Person" and not is_optical_model:
                         vit_status, delta_t, risk_badge = compute_thermal_vitality(crop, orig_np, (ix1, iy1, ix2, iy2))
-                    crops.append((cname, score, crop, (ix1, iy1, ix2, iy2), vit_status))
+                    elif cname == "Backpack":
+                        vit_status = "⚠️ Rubble Clue / Potential Victim Anchor"
+                    elif cat == "Rubble Clue":
+                        vit_status = "🎒 Personal Effects / Evidence"
+                    elif cat == "Evacuation Obstacle":
+                        vit_status = "🚧 Access Route Obstacle"
+                    elif cat == "Canine & Pet":
+                        vit_status = "🐾 Animal / Pet Signature"
+                    crops.append((f"{icon} {cname}", score, crop, (ix1, iy1, ix2, iy2), vit_status))
 
                 detections.append({
                     "Target ID": f"TRG-{idx+1:02d}",
                     "Category": cname,
+                    "Tactical Group": cat,
                     "Confidence": f"{score:.1%}",
                     "Confidence_Score": score,
                     "Vitality": vit_status,
@@ -575,41 +810,51 @@ with tab_image:
                     "Center_Y": (y1 + y2) / 2
                 })
 
+        survivors_count = counts_by_category.get("Survivor", 0)
+        clues_count = counts_by_category.get("Rubble Clue", 0)
+        obs_count = counts_by_category.get("Evacuation Obstacle", 0)
+        pets_count = counts_by_category.get("Canine & Pet", 0)
+        total_count = len(detections)
+
         # Update session state for dispatch tab
         st.session_state.latest_detections = detections
         st.session_state.latest_source = img_name
         st.session_state.latest_crops = crops
 
         # ---------------- EARTHQUAKE TRIAGE ASSESSMENT ----------------
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-grid">
             <div class="tactical-card card-victim">
-                <div class="card-label">🔴 Trapped Survivors (People)</div>
-                <div class="card-value val-victim">{}</div>
+                <div class="card-label">🔴 Trapped Survivors</div>
+                <div class="card-value val-victim">{survivors_count}</div>
                 <div style="font-size: 0.75rem; color: #8b949e;">Immediate extraction target</div>
             </div>
-            <div class="tactical-card card-k9">
-                <div class="card-label">🐕 Search & Rescue K9s</div>
-                <div class="card-value val-k9">{}</div>
-                <div style="font-size: 0.75rem; color: #8b949e;">Active canine search teams</div>
+            <div class="tactical-card card-clue">
+                <div class="card-label">🎒 Rubble Clues & Bags</div>
+                <div class="card-value val-clue">{clues_count}</div>
+                <div style="font-size: 0.75rem; color: #8b949e;">Victim anchors / Personal effects</div>
             </div>
             <div class="tactical-card card-vehicle">
-                <div class="card-label">🚗 Evacuation / Obstacles</div>
-                <div class="card-value val-vehicle">{}</div>
+                <div class="card-label">🚗 Evacuation Obstacles</div>
+                <div class="card-value val-vehicle">{obs_count}</div>
                 <div style="font-size: 0.75rem; color: #8b949e;">Road clearance assessment</div>
             </div>
+            <div class="tactical-card card-k9">
+                <div class="card-label">🐕 Search Dogs & Pets</div>
+                <div class="card-value val-k9">{pets_count}</div>
+                <div style="font-size: 0.75rem; color: #8b949e;">K9 teams & trapped animals</div>
+            </div>
             <div class="tactical-card card-total">
-                <div class="card-label">🟢 Total Thermal Signatures</div>
-                <div class="card-value val-total">{}</div>
-                <div style="font-size: 0.75rem; color: #8b949e;">Latency: {:.1f} ms</div>
+                <div class="card-label">🟢 Total Targets</div>
+                <div class="card-value val-total">{total_count}</div>
+                <div style="font-size: 0.75rem; color: #8b949e;">Latency: {dt_ms:.1f} ms</div>
             </div>
         </div>
-        """.format(counts["Person"], counts["Dog"], counts.get("Obstacle / Vehicle", counts.get("Car", 0)), len(detections), dt_ms), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
         # Tactical Alert Evaluation
         people_boxes = [d for d in detections if d["Category"] == "Person"]
-        dog_boxes = [d for d in detections if d["Category"] == "Dog"]
-        obs_count = counts.get("Obstacle / Vehicle", counts.get("Car", 0))
+        dog_boxes = [d for d in detections if d["Category"] in ["Dog", "Cat"]]
 
         # Check for multi-victim cluster in rubble
         multi_victim = False
@@ -642,6 +887,17 @@ with tab_image:
             st.markdown("""
             <div class="alert-box alert-k9">
                 <strong>🐕 ACTIVE K9 OPERATIONS IN SECTOR:</strong> SAR Dog handler team identified operating in this reconnaissance grid.
+            </div>
+            """, unsafe_allow_html=True)
+
+        if clues_count > 0:
+            clue_breakdown = ", ".join([f"{cnt} {name}(s)" for name, cnt in counts_by_name.items() if name in ['Backpack', 'Handbag', 'Suitcase', 'Cell Phone']])
+            if not clue_breakdown:
+                clue_breakdown = f"{clues_count} Rubble Items"
+            st.markdown(f"""
+            <div class="alert-box alert-clue">
+                <strong>🎒 USAR TACTICAL ALERT: RUBBLE CLUES / VICTIM ANCHORS CONFIRMED!</strong><br>
+                Identified: <strong>{clue_breakdown}</strong>. In collapsed earthquake rubble, personal belongings (backpacks, bags, phones) serve as vital <em>Victim Anchors</em> indicating trapped occupants or swift evacuation paths. Prioritize acoustic listening devices and K9 sweeps in this rubble sector.
             </div>
             """, unsafe_allow_html=True)
 
@@ -709,9 +965,9 @@ with tab_image:
                 society_name=society_name,
                 safe_zone=safe_assembly_point,
                 gate_name=main_gate_name,
-                people_count=counts["Person"],
+                people_count=survivors_count,
                 obstacle_count=obs_count,
-                k9_count=counts["Dog"],
+                k9_count=pets_count,
                 has_hazard=is_thermal_hazard,
                 detections=detections
             )
@@ -726,7 +982,7 @@ with tab_image:
                 safe_zone=safe_assembly_point,
                 gate_name=main_gate_name,
                 model_name=selected_model_name,
-                counts={"Person": counts["Person"], "Dog": counts["Dog"], "Car": obs_count},
+                counts={"Person": survivors_count, "Dog": pets_count, "Car": obs_count, "Rubble Clue": clues_count},
                 gate_blocked=gate_blocked,
                 thermal_hazard=is_thermal_hazard,
                 detections=detections,
@@ -748,11 +1004,12 @@ with tab_image:
 
 ━━━━━━━━━━━━━━━━━━━━━
 📊 *SOCIETY SITUATION REPORT:*
-• Confirmed Trapped Residents: *{counts['Person']}*
+• Confirmed Trapped Residents: *{survivors_count}*
+• Rubble Clues / Bags Cataloged: *{clues_count}*
 • Main Access Gate ({main_gate_name}): *{'🔴 BLOCKED (Towing Required)' if gate_blocked else '🟢 CLEAR'}*
 • Internal Roadways: *{'🔴 IMPASSABLE (Heavy Rubble)' if is_debris_blocked else '🟢 CLEAR (Traversable)'} ({rubble_sev}% Density)*
 • Utility Corridors (Gas/DG): *{'🔥 HIGH HEAT / FIRE HAZARD' if is_thermal_hazard else '🟢 NORMAL'}*
-• Active Search K9 Teams: *{counts['Dog']}*
+• Active Search K9 Teams: *{pets_count}*
 
 ━━━━━━━━━━━━━━━━━━━━━
 ⚠️ *DIRECTIVES FOR ALL RESIDENTS:*
@@ -827,16 +1084,19 @@ with tab_video:
         mission_tracking_mode = st.radio(
             "Mission Target Focus",
             options=[
+                "🎯 Follow Active Sidebar Mission Targets (Search configured objects)",
                 "👥 Human Survivors Only (Recommended - Zero Animal False Positives)",
                 "🐕 Complete SAR Grid (Humans + Rescue K9s + Vehicles)"
             ],
             index=0,
-            help="Select 'Human Survivors Only' when inspecting disaster zones without working K9 teams to completely eliminate false dog detections."
+            help="Select how drone video tracking should filter targets: follow your active sidebar target selection, restrict to survivors only, or scan the standard SAR grid."
         )
         if "Human Survivors Only" in mission_tracking_mode:
             track_classes = [0]
+        elif "Follow Active Sidebar" in mission_tracking_mode:
+            track_classes = active_coco_classes if is_optical_model else active_thermal_classes
         else:
-            track_classes = [0, 1, 2]
+            track_classes = [0, 1, 2, 3, 16] if is_optical_model else [0, 1, 2]
 
     if video_source_path:
         st.markdown("---")
@@ -879,7 +1139,7 @@ with tab_video:
                     self.min_hits = min_hits
 
                 def update(self, detections):
-                    # detections: list of (cx, cy, cid, conf, [x1,y1,x2,y2])
+                    # detections: list of (cx, cy, cname, conf, [x1,y1,x2,y2], cat)
                     if not detections:
                         for tid in list(self.tracks.keys()):
                             self.tracks[tid]['disappeared'] += 1
@@ -898,7 +1158,8 @@ with tab_video:
                                 'conf': d[3],
                                 'disappeared': 0,
                                 'hits': 1,
-                                'bbox': d[4]
+                                'bbox': d[4],
+                                'cat': d[5]
                             }
                             self.next_id += 1
                         return self.get_active()
@@ -919,6 +1180,7 @@ with tab_video:
                         self.tracks[tid]['votes'][detections[c][2]] += 1
                         self.tracks[tid]['conf'] = detections[c][3]
                         self.tracks[tid]['bbox'] = detections[c][4]
+                        self.tracks[tid]['cat'] = detections[c][5]
                         self.tracks[tid]['disappeared'] = 0
                         self.tracks[tid]['hits'] += 1
 
@@ -944,7 +1206,8 @@ with tab_video:
                                 'conf': d[3],
                                 'disappeared': 0,
                                 'hits': 1,
-                                'bbox': d[4]
+                                'bbox': d[4],
+                                'cat': d[5]
                             }
                             self.next_id += 1
 
@@ -959,17 +1222,17 @@ with tab_video:
                                 'tid': tid,
                                 'cls': majority_cls,
                                 'conf': t['conf'],
-                                'bbox': t['bbox']
+                                'bbox': t['bbox'],
+                                'cat': t.get('cat', 'General Object')
                             })
                     return active
 
                 def get_unique_counts(self):
-                    counts = {0: 0, 1: 0, 2: 0}
+                    counts = Counter()
                     for tid, t in self.tracks.items():
                         if t['hits'] >= self.min_hits:
                             majority_cls = t['votes'].most_common(1)[0][0]
-                            if majority_cls in counts:
-                                counts[majority_cls] += 1
+                            counts[majority_cls] += 1
                     return counts
 
             tracker = RobustVideoTracker(min_hits=4)
@@ -984,41 +1247,24 @@ with tab_video:
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
                 # Inference on clean sensor frame
-                if is_optical_model:
-                    coco_classes = [0] if "Human Survivors Only" in mission_tracking_mode else [0, 1, 2, 3, 16]
-                    res = model.predict(
-                        source=frame_rgb,
-                        conf=vid_conf,
-                        iou=iou_thresh,
-                        agnostic_nms=True,
-                        classes=coco_classes,
-                        verbose=False
-                    )[0]
-                else:
-                    res = model.predict(
-                        source=frame_rgb,
-                        conf=vid_conf,
-                        iou=iou_thresh,
-                        agnostic_nms=True,
-                        classes=track_classes if track_classes else None,
-                        verbose=False
-                    )[0]
+                res = model.predict(
+                    source=frame_rgb,
+                    conf=vid_conf,
+                    iou=iou_thresh,
+                    agnostic_nms=True,
+                    classes=track_classes if track_classes else None,
+                    verbose=False
+                )[0]
                 
                 raw_dets = []
                 if res.boxes is not None:
                     for b in res.boxes:
                         raw_cid = int(b.cls[0].item())
-                        if is_optical_model:
-                            coco_to_usar = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}
-                            if raw_cid not in coco_to_usar:
-                                continue
-                            cid = coco_to_usar[raw_cid]
-                        else:
-                            cid = raw_cid
+                        cname, cat, icon = resolve_detection_info(raw_cid, is_optical=is_optical_model, opt_names=optical_model.names)
                         score = float(b.conf[0].item())
                         x1, y1, x2, y2 = b.xyxy[0].tolist()
                         cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-                        raw_dets.append((cx, cy, cid, score, [int(x1), int(y1), int(x2), int(y2)]))
+                        raw_dets.append((cx, cy, cname, score, [int(x1), int(y1), int(x2), int(y2)], cat))
 
                 # Update temporal tracker (filters out 1-frame glitches with majority vote)
                 active_tracks = tracker.update(raw_dets)
@@ -1026,27 +1272,37 @@ with tab_video:
                 # Draw persistent tracks on frame
                 draw_img = frame_rgb.copy()
                 curr_people = 0
-                curr_dogs = 0
-                curr_cars = 0
+                curr_clues = 0
+                curr_obstacles = 0
+                curr_k9s = 0
+
+                cat_colors = {
+                    "Survivor": (255, 51, 102),     # Red
+                    "Rubble Clue": (163, 113, 247), # Purple
+                    "Evacuation Obstacle": (255, 209, 102), # Amber
+                    "Canine & Pet": (0, 240, 255),  # Cyan
+                    "Infrastructure": (56, 139, 253), # Blue
+                    "General Object": (0, 245, 155) # Green
+                }
 
                 for t in active_tracks:
-                    cid = t['cls']
+                    cname = t['cls']
                     tid = t['tid']
                     conf_val = t['conf']
                     bx1, by1, bx2, by2 = t['bbox']
+                    cat = t.get('cat', 'General Object')
                     
-                    if cid == 0:
+                    if cname == "Person" or cat == "Survivor":
                         curr_people += 1
-                        color = (255, 51, 102)   # Red
-                        label = f"Survivor #{tid} ({conf_val:.0%})"
-                    elif cid == 1:
-                        curr_cars += 1
-                        color = (255, 209, 102)  # Amber
-                        label = f"Obstacle #{tid} ({conf_val:.0%})"
-                    else:
-                        curr_dogs += 1
-                        color = (0, 240, 255)    # Cyan
-                        label = f"K9 #{tid} ({conf_val:.0%})"
+                    elif cat == "Rubble Clue" or cname in ["Backpack", "Handbag", "Suitcase", "Cell Phone"]:
+                        curr_clues += 1
+                    elif cat == "Evacuation Obstacle":
+                        curr_obstacles += 1
+                    elif cat == "Canine & Pet":
+                        curr_k9s += 1
+                    
+                    color = cat_colors.get(cat, (0, 245, 155))
+                    label = f"{cname} #{tid} ({conf_val:.0%})"
 
                     cv2.rectangle(draw_img, (bx1, by1), (bx2, by2), color, 2)
                     cv2.putText(draw_img, label, (bx1, max(15, by1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
@@ -1056,14 +1312,30 @@ with tab_video:
 
                 # Update Live HUD with confirmed unique counts
                 unique_counts = tracker.get_unique_counts()
+                tot_p = unique_counts.get("Person", 0)
+                tot_clues = sum(cnt for name, cnt in unique_counts.items() if name in ["Backpack", "Handbag", "Suitcase", "Cell Phone"])
+                tot_obs = sum(cnt for name, cnt in unique_counts.items() if name in ["Car", "Obstacle / Vehicle", "Bicycle", "Motorcycle", "Truck", "Bus"])
+                tot_k9 = sum(cnt for name, cnt in unique_counts.items() if name in ["Dog", "Cat"])
+
                 metric_curr_people.metric("🔴 In Current Frame", f"{curr_people} Survivors")
-                metric_total_people.metric("📍 Total Unique Survivors", f"{unique_counts[0]} People")
-                metric_k9.metric("🐕 Confirmed K9s", f"{unique_counts[2]} Dogs")
-                metric_veh.metric("🚗 Confirmed Vehicles", f"{unique_counts[1]} Obstacles")
+                metric_total_people.metric("📍 Total Unique Survivors", f"{tot_p} People")
+                metric_k9.metric("🎒 Rubble Clues / Pets", f"{tot_clues} Clues | {tot_k9} Animals")
+                metric_veh.metric("🚗 Confirmed Vehicles", f"{tot_obs} Obstacles")
 
             cap.release()
             final_counts = tracker.get_unique_counts()
-            st.success(f"✅ Drone Aerial Reconnaissance Complete! Found {final_counts[0]} unique survivor(s), {final_counts[1]} obstacle(s) across {total_frames} frames.")
+            f_p = final_counts.get("Person", 0)
+            f_clues = sum(cnt for name, cnt in final_counts.items() if name in ["Backpack", "Handbag", "Suitcase", "Cell Phone"])
+            f_obs = sum(cnt for name, cnt in final_counts.items() if name in ["Car", "Obstacle / Vehicle", "Bicycle", "Motorcycle", "Truck", "Bus"])
+            f_k9 = sum(cnt for name, cnt in final_counts.items() if name in ["Dog", "Cat"])
+
+            summary_msg = f"✅ Drone Aerial Reconnaissance Complete! Found {f_p} unique survivor(s)"
+            if f_clues > 0:
+                summary_msg += f", {f_clues} rubble clue(s)/bag(s)"
+            if f_obs > 0:
+                summary_msg += f", {f_obs} obstacle(s)"
+            summary_msg += f" across {total_frames} frames."
+            st.success(summary_msg)
 
             # Action buttons for video recon
             v_act1, v_act2 = st.columns(2)
@@ -1073,8 +1345,8 @@ with tab_video:
                     safe_zone=safe_assembly_point,
                     gate_name=main_gate_name,
                     model_name=selected_model_name,
-                    counts={"Person": final_counts[0], "Dog": final_counts[2], "Car": final_counts[1]},
-                    gate_blocked=final_counts[1] > 0,
+                    counts={"Person": f_p, "Dog": f_k9, "Car": f_obs, "Rubble Clue": f_clues},
+                    gate_blocked=f_obs > 0,
                     thermal_hazard=False,
                     detections=[]
                 )
@@ -1093,8 +1365,10 @@ with tab_video:
 
 ━━━━━━━━━━━━━━━━━━━━━
 📊 *SOCIETY SITUATION REPORT:*
-• Unique Survivors Tracked: *{final_counts[0]}*
-• Main Access Gate ({main_gate_name}): *{'🔴 BLOCKED (Towing Required)' if final_counts[1] > 0 else '🟢 CLEAR'}*
+• Unique Survivors Tracked: *{f_p}*
+• Rubble Clues / Bags Cataloged: *{f_clues}*
+• Main Access Gate ({main_gate_name}): *{'🔴 BLOCKED (Towing Required)' if f_obs > 0 else '🟢 CLEAR'}*
+• Active Search K9 Teams / Pets: *{f_k9}*
 • Active Search K9 Teams: *{final_counts[2]}*
 
 ━━━━━━━━━━━━━━━━━━━━━
@@ -1138,49 +1412,35 @@ with tab_live:
             snap_np = np.array(snap_img)
             
             # Predict with Class-Agnostic NMS on RGB numpy frame
-            if is_stream_optical:
-                snap_res = active_stream_model.predict(
-                    source=snap_np,
-                    conf=confidence,
-                    iou=iou_thresh,
-                    agnostic_nms=True,
-                    classes=[0, 1, 2, 3, 16],
-                    verbose=False
-                )[0]
-            else:
-                snap_res = active_stream_model.predict(
-                    source=snap_np,
-                    conf=confidence,
-                    iou=iou_thresh,
-                    agnostic_nms=True,
-                    verbose=False
-                )[0]
+            stream_target_classes = active_coco_classes if is_stream_optical else active_thermal_classes
+            snap_res = active_stream_model.predict(
+                source=snap_np,
+                conf=confidence,
+                iou=iou_thresh,
+                agnostic_nms=True,
+                classes=stream_target_classes,
+                verbose=False
+            )[0]
             
             snap_annotated = snap_res.plot()
             st.image(snap_annotated, caption=f"Live Recon Analysis — {'Daylight Optical (YOLO11)' if is_stream_optical else selected_model_name}", use_container_width=True)
             
-            snap_boxes = snap_res.boxes
-            snap_people = 0
-            snap_dogs = 0
-            snap_obstacles = 0
-
-            if snap_boxes is not None:
-                for b in snap_boxes:
+            snap_counts = Counter()
+            if snap_res.boxes is not None:
+                for b in snap_res.boxes:
                     raw_cid = int(b.cls[0].item())
-                    if is_stream_optical:
-                        cid = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(raw_cid, raw_cid)
-                    else:
-                        cid = raw_cid
-                    if cid == 0:
-                        snap_people += 1
-                    elif cid == 1:
-                        snap_obstacles += 1
-                    elif cid == 2:
-                        snap_dogs += 1
+                    cname, cat, icon = resolve_detection_info(raw_cid, is_optical=is_stream_optical, opt_names=optical_model.names)
+                    snap_counts[f"{icon} {cname}"] += 1
 
-            st.success(f"Confirmed **{snap_people}** Person(s) | **{snap_dogs}** Search Dog(s) | **{snap_obstacles}** Obstacle(s) in camera view.")
-            if snap_people > 0:
-                trigger_tactical_audio_alert(f"Live camera verified {snap_people} person.", enabled=enable_audio_siren)
+            if snap_counts:
+                summary_items = [f"**{cnt}** {item}" for item, cnt in snap_counts.items()]
+                st.success(f"🎯 **Target Recon Confirmed:** {', '.join(summary_items)} in camera view.")
+            else:
+                st.info("No targets detected matching current target filter.")
+
+            person_cnt = sum(cnt for item, cnt in snap_counts.items() if "Person" in item)
+            if person_cnt > 0:
+                trigger_tactical_audio_alert(f"Live camera verified {person_cnt} person.", enabled=enable_audio_siren)
 
     else:
         st.write("Click below to start continuous stream processing:")
@@ -1210,45 +1470,31 @@ with tab_live:
                 frame_cnt += 1
                 if frame_cnt % 2 == 0:
                     l_rgb = cv2.cvtColor(l_frame, cv2.COLOR_BGR2RGB)
-                    if is_stream_optical:
-                        l_res = active_stream_model.predict(
-                            source=l_rgb,
-                            conf=confidence,
-                            iou=iou_thresh,
-                            agnostic_nms=True,
-                            classes=[0, 1, 2, 3, 16],
-                            verbose=False
-                        )[0]
-                    else:
-                        l_res = active_stream_model.predict(
-                            source=l_rgb,
-                            conf=confidence,
-                            iou=iou_thresh,
-                            agnostic_nms=True,
-                            verbose=False
-                        )[0]
+                    stream_target_classes = active_coco_classes if is_stream_optical else active_thermal_classes
+                    l_res = active_stream_model.predict(
+                        source=l_rgb,
+                        conf=confidence,
+                        iou=iou_thresh,
+                        agnostic_nms=True,
+                        classes=stream_target_classes,
+                        verbose=False
+                    )[0]
                     
                     l_draw = l_res.plot()
                     live_frame_placeholder.image(l_draw, caption=f"Live Feed Active — {'Daylight Optical (RGB)' if is_stream_optical else selected_model_name}", use_container_width=True)
                     
-                    p_c = 0
-                    d_c = 0
-                    o_c = 0
+                    l_counts = Counter()
                     if l_res.boxes is not None:
                         for b in l_res.boxes:
                             raw_cid = int(b.cls[0].item())
-                            if is_stream_optical:
-                                cid = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(raw_cid, raw_cid)
-                            else:
-                                cid = raw_cid
-                            if cid == 0:
-                                p_c += 1
-                            elif cid == 1:
-                                o_c += 1
-                            elif cid == 2:
-                                d_c += 1
+                            cname, cat, icon = resolve_detection_info(raw_cid, is_optical=is_stream_optical, opt_names=optical_model.names)
+                            l_counts[f"{icon} {cname}"] += 1
                     
-                    live_metric_placeholder.success(f"🟢 **Live Recon:** {p_c} Person(s) Detected | {d_c} Search Dog(s) | {o_c} Obstacle(s)")
+                    if l_counts:
+                        stream_summary = " | ".join([f"{item}: {cnt}" for item, cnt in l_counts.items()])
+                        live_metric_placeholder.success(f"🟢 **Live Recon Active:** {stream_summary}")
+                    else:
+                        live_metric_placeholder.info("🟢 **Live Recon Active:** Scanning... No target signatures in frame.")
             live_cap.release()
 
 # =======================================================
@@ -1273,9 +1519,10 @@ with tab_dispatch:
 
     # Multi-Tower Resident Directory & Evacuation Accounting
     st.markdown("##### 🏢 Multi-Tower Resident Accounting & Evacuation Reconciliation")
-    c_p = len([d for d in current_dets if d.get('Category') == 'Person']) if current_dets else 0
-    c_d = len([d for d in current_dets if d.get('Category') == 'Dog']) if current_dets else 0
-    c_o = len([d for d in current_dets if d.get('Category') in ['Obstacle / Vehicle', 'Car']]) if current_dets else 0
+    c_p = len([d for d in current_dets if d.get('Category') == 'Person' or d.get('Tactical Group') == 'Survivor']) if current_dets else 0
+    c_d = len([d for d in current_dets if d.get('Category') in ['Dog', 'Cat'] or d.get('Tactical Group') == 'Canine & Pet']) if current_dets else 0
+    c_o = len([d for d in current_dets if d.get('Tactical Group') == 'Evacuation Obstacle' or d.get('Category') in ['Obstacle / Vehicle', 'Car', 'Bicycle', 'Motorcycle', 'Truck', 'Bus']]) if current_dets else 0
+    c_clues = len([d for d in current_dets if d.get('Tactical Group') == 'Rubble Clue' or d.get('Category') in ['Backpack', 'Handbag', 'Suitcase', 'Cell Phone']]) if current_dets else 0
 
     acc_c1, acc_c2, acc_c3, acc_c4 = st.columns(4)
     acc_c1.metric("🏢 Total Residents", f"{total_society_pop} People")
@@ -1287,6 +1534,8 @@ with tab_dispatch:
     pct_accounted = min(1.0, (int(safe_lawn_est) + c_p) / max(1, int(total_society_pop)))
     st.progress(pct_accounted)
     st.caption(f"**Safety Roster:** {pct_accounted:.1%} of society population accounted for ({int(safe_lawn_est) + c_p} / {total_society_pop} residents).")
+    if c_clues > 0:
+        st.info(f"🎒 **Rubble Clues & Victim Anchors Located:** {c_clues} item(s) (backpacks, bags, phones) cataloged in disaster sector.")
 
     # Interactive Tactical Map in Command Center
     st.markdown("---")
@@ -1310,7 +1559,7 @@ with tab_dispatch:
         
         with col_d1:
             st.markdown(f"**Active Target Reconnaissance Log (`{st.session_state.latest_source}`)**")
-            display_cols = ["Target ID", "Category", "Confidence", "Vitality", "Sector Box [X1,Y1,X2,Y2]", "Grid Center"]
+            display_cols = ["Target ID", "Category", "Tactical Group", "Confidence", "Vitality", "Sector Box [X1,Y1,X2,Y2]", "Grid Center"]
             avail_cols = [c for c in display_cols if c in df.columns]
             st.dataframe(df[avail_cols], use_container_width=True)
 
@@ -1321,7 +1570,7 @@ with tab_dispatch:
                 safe_zone=safe_assembly_point,
                 gate_name=main_gate_name,
                 model_name=selected_model_name,
-                counts={"Person": c_p, "Dog": c_d, "Car": c_o},
+                counts={"Person": c_p, "Dog": c_d, "Car": c_o, "Rubble Clue": c_clues},
                 gate_blocked=c_o > 0,
                 thermal_hazard=False,
                 detections=current_dets,
