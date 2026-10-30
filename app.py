@@ -336,7 +336,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ TACTICAL CONFIGURATION")
 
 selected_model_name = st.sidebar.selectbox(
-    "Active Thermal Vision Model",
+    "Active Sensor Payload Model",
     options=list(AVAILABLE_MODELS.keys()),
     index=0
 )
@@ -346,6 +346,7 @@ enable_audio_siren = st.sidebar.checkbox("🔊 Tactical Audio Siren & Voice Aler
 
 try:
     model = load_yolo_model(model_path)
+    optical_model = load_yolo_model("/Users/pratik/DisasterResponseSystem/yolo11n.pt")
     st.sidebar.success(f"✓ Neural Weights Online")
 except Exception as e:
     st.sidebar.error(f"Error loading model: {e}")
@@ -357,28 +358,28 @@ st.sidebar.markdown("### 🎯 SENSOR TUNING")
 sensitivity_mode = st.sidebar.radio(
     "Operational Sensitivity Mode",
     options=[
-        "🚨 High Sensitivity (USAR / Faint Heat / Distant Victims)",
         "🎯 Balanced Operations (Standard)",
-        "🛡️ High Confidence (Zero False Alarms)"
+        "🛡️ High Confidence (Zero False Alarms)",
+        "🚨 High Sensitivity (USAR / Faint Heat / Distant Victims)"
     ],
     index=0,
-    help="High Sensitivity catches distant or faint thermal signatures (down to 12% confidence) — essential for partially buried or distant earthquake survivors."
+    help="Balanced Operations (35% confidence + Class-Agnostic NMS) prevents dual-class ghost detections (e.g. person classified as dog) and eliminates background noise."
 )
 
 if "High Sensitivity" in sensitivity_mode:
-    default_conf = 0.15
-elif "Balanced" in sensitivity_mode:
-    default_conf = 0.30
-else:
+    default_conf = 0.18
+elif "High Confidence" in sensitivity_mode:
     default_conf = 0.50
+else:
+    default_conf = 0.35
 
 confidence = st.sidebar.slider(
     "Minimum Detection Confidence",
-    min_value=0.05,
+    min_value=0.10,
     max_value=0.90,
     value=default_conf,
     step=0.01,
-    help="Lower values (0.05 - 0.15) help detect distant, faint, or compressed WhatsApp thermal images."
+    help="Higher values (0.35 - 0.50) prevent false positive boxes. Lower values (0.15 - 0.20) are for faint heat in rubble."
 )
 
 iou_thresh = st.sidebar.slider(
@@ -492,6 +493,7 @@ with tab_image:
                 source=selected_img,
                 conf=confidence,
                 iou=iou_thresh,
+                agnostic_nms=True,
                 classes=[0, 1, 2, 3, 16],
                 verbose=False
             )[0]
@@ -500,6 +502,7 @@ with tab_image:
                 source=selected_img,
                 conf=confidence,
                 iou=iou_thresh,
+                agnostic_nms=True,
                 verbose=False
             )[0]
         dt_ms = (time.time() - t0) * 1000
@@ -987,6 +990,7 @@ with tab_video:
                         source=frame_rgb,
                         conf=vid_conf,
                         iou=iou_thresh,
+                        agnostic_nms=True,
                         classes=coco_classes,
                         verbose=False
                     )[0]
@@ -995,6 +999,7 @@ with tab_video:
                         source=frame_rgb,
                         conf=vid_conf,
                         iou=iou_thresh,
+                        agnostic_nms=True,
                         classes=track_classes if track_classes else None,
                         verbose=False
                     )[0]
@@ -1116,10 +1121,15 @@ with tab_live:
             index=0
         )
     with live_c2:
-        if "Continuous" in stream_mode:
-            stream_src_input = st.text_input("Camera Index or Network URL (0 for Mac Webcam, or RTSP/HTTP)", value="0")
-        else:
-            st.info("💡 Snaps a high-resolution frame from your Mac's camera or connected phone for instant tactical triage.")
+        stream_sensor_type = st.radio(
+            "Active Camera Sensor Payload",
+            ["☀️ Daylight Optical (Mac Webcam / Visible RGB)", "🌡️ Thermal Infrared IR (FLIR / Seek / Drone Thermal)"],
+            index=0,
+            help="Your Mac Webcam captures Daylight Optical RGB light. Always keep 'Daylight Optical' selected when using your laptop webcam to ensure survivors are accurately classified and prevent false dog detections."
+        )
+
+    is_stream_optical = "Daylight Optical" in stream_sensor_type
+    active_stream_model = optical_model if is_stream_optical else model
 
     if "Snapshot" in stream_mode:
         live_snap = st.camera_input("Capture Instant Reconnaissance Frame from Camera")
@@ -1127,30 +1137,59 @@ with tab_live:
             snap_img = Image.open(live_snap).convert("RGB")
             snap_np = np.array(snap_img)
             
-            # Predict
-            if is_optical_model:
-                snap_res = model.predict(source=snap_img, conf=confidence, iou=iou_thresh, classes=[0, 1, 2, 3, 16], verbose=False)[0]
+            # Predict with Class-Agnostic NMS
+            if is_stream_optical:
+                snap_res = active_stream_model.predict(
+                    source=snap_img,
+                    conf=confidence,
+                    iou=iou_thresh,
+                    agnostic_nms=True,
+                    classes=[0, 1, 2, 3, 16],
+                    verbose=False
+                )[0]
             else:
-                snap_res = model.predict(source=snap_img, conf=confidence, iou=iou_thresh, verbose=False)[0]
+                snap_res = active_stream_model.predict(
+                    source=snap_img,
+                    conf=confidence,
+                    iou=iou_thresh,
+                    agnostic_nms=True,
+                    verbose=False
+                )[0]
             
             snap_annotated = snap_res.plot()[:, :, ::-1]
-            st.image(snap_annotated, caption=f"Live Recon Analysis — {selected_model_name}", use_container_width=True)
+            st.image(snap_annotated, caption=f"Live Recon Analysis — {'Daylight Optical (YOLO11)' if is_stream_optical else selected_model_name}", use_container_width=True)
             
             snap_boxes = snap_res.boxes
             snap_people = 0
+            snap_dogs = 0
+            snap_obstacles = 0
+
             if snap_boxes is not None:
                 for b in snap_boxes:
-                    cid = int(b.cls[0].item())
-                    if is_optical_model:
-                        cid = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(cid, cid)
+                    raw_cid = int(b.cls[0].item())
+                    if is_stream_optical:
+                        cid = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(raw_cid, raw_cid)
+                    else:
+                        cid = raw_cid
                     if cid == 0:
                         snap_people += 1
-            st.success(f"Confirmed {snap_people} person(s) in live camera view.")
+                    elif cid == 1:
+                        snap_obstacles += 1
+                    elif cid == 2:
+                        snap_dogs += 1
+
+            st.success(f"Confirmed **{snap_people}** Person(s) | **{snap_dogs}** Search Dog(s) | **{snap_obstacles}** Obstacle(s) in camera view.")
             if snap_people > 0:
                 trigger_tactical_audio_alert(f"Live camera verified {snap_people} person.", enabled=enable_audio_siren)
 
     else:
         st.write("Click below to start continuous stream processing:")
+        col_s1, col_s2 = st.columns([2, 1])
+        with col_s1:
+            stream_src_input = st.text_input("Camera Index or Network URL (0 for Mac Webcam, or RTSP/HTTP)", value="0")
+        with col_s2:
+            st.caption(f"Active Sensor Engine: **{'☀️ Daylight Optical (RGB)' if is_stream_optical else '🌡️ Thermal Infrared IR'}**")
+
         col_btn1, col_btn2 = st.columns(2)
         live_run = col_btn1.toggle("🔴 Start Live Stream Processing", key="live_stream_toggle")
         
@@ -1171,14 +1210,45 @@ with tab_live:
                 frame_cnt += 1
                 if frame_cnt % 2 == 0:
                     l_rgb = cv2.cvtColor(l_frame, cv2.COLOR_BGR2RGB)
-                    if is_optical_model:
-                        l_res = model.predict(source=l_rgb, conf=confidence, classes=[0, 1, 2, 3, 16], verbose=False)[0]
+                    if is_stream_optical:
+                        l_res = active_stream_model.predict(
+                            source=l_rgb,
+                            conf=confidence,
+                            iou=iou_thresh,
+                            agnostic_nms=True,
+                            classes=[0, 1, 2, 3, 16],
+                            verbose=False
+                        )[0]
                     else:
-                        l_res = model.predict(source=l_rgb, conf=confidence, verbose=False)[0]
+                        l_res = active_stream_model.predict(
+                            source=l_rgb,
+                            conf=confidence,
+                            iou=iou_thresh,
+                            agnostic_nms=True,
+                            verbose=False
+                        )[0]
                     
                     l_draw = l_res.plot()
-                    live_frame_placeholder.image(l_draw[:, :, ::-1], caption=f"Live Feed Active — {selected_model_name}", use_container_width=True)
-                    live_metric_placeholder.info(f"Target Signatures in Frame: {len(l_res.boxes) if l_res.boxes is not None else 0}")
+                    live_frame_placeholder.image(l_draw[:, :, ::-1], caption=f"Live Feed Active — {'Daylight Optical (RGB)' if is_stream_optical else selected_model_name}", use_container_width=True)
+                    
+                    p_c = 0
+                    d_c = 0
+                    o_c = 0
+                    if l_res.boxes is not None:
+                        for b in l_res.boxes:
+                            raw_cid = int(b.cls[0].item())
+                            if is_stream_optical:
+                                cid = {0: 0, 1: 1, 2: 1, 3: 1, 16: 2}.get(raw_cid, raw_cid)
+                            else:
+                                cid = raw_cid
+                            if cid == 0:
+                                p_c += 1
+                            elif cid == 1:
+                                o_c += 1
+                            elif cid == 2:
+                                d_c += 1
+                    
+                    live_metric_placeholder.success(f"🟢 **Live Recon:** {p_c} Person(s) Detected | {d_c} Search Dog(s) | {o_c} Obstacle(s)")
             live_cap.release()
 
 # =======================================================
