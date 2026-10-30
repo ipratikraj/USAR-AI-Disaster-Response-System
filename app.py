@@ -1137,10 +1137,10 @@ with tab_live:
             snap_img = Image.open(live_snap).convert("RGB")
             snap_np = np.array(snap_img)
             
-            # Predict with Class-Agnostic NMS
+            # Predict with Class-Agnostic NMS on RGB numpy frame
             if is_stream_optical:
                 snap_res = active_stream_model.predict(
-                    source=snap_img,
+                    source=snap_np,
                     conf=confidence,
                     iou=iou_thresh,
                     agnostic_nms=True,
@@ -1149,14 +1149,14 @@ with tab_live:
                 )[0]
             else:
                 snap_res = active_stream_model.predict(
-                    source=snap_img,
+                    source=snap_np,
                     conf=confidence,
                     iou=iou_thresh,
                     agnostic_nms=True,
                     verbose=False
                 )[0]
             
-            snap_annotated = snap_res.plot()[:, :, ::-1]
+            snap_annotated = snap_res.plot()
             st.image(snap_annotated, caption=f"Live Recon Analysis — {'Daylight Optical (YOLO11)' if is_stream_optical else selected_model_name}", use_container_width=True)
             
             snap_boxes = snap_res.boxes
@@ -1229,7 +1229,7 @@ with tab_live:
                         )[0]
                     
                     l_draw = l_res.plot()
-                    live_frame_placeholder.image(l_draw[:, :, ::-1], caption=f"Live Feed Active — {'Daylight Optical (RGB)' if is_stream_optical else selected_model_name}", use_container_width=True)
+                    live_frame_placeholder.image(l_draw, caption=f"Live Feed Active — {'Daylight Optical (RGB)' if is_stream_optical else selected_model_name}", use_container_width=True)
                     
                     p_c = 0
                     d_c = 0
