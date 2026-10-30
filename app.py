@@ -31,15 +31,17 @@ st.set_page_config(
 # ---------------- HIGH-TECH TACTICAL HUD STYLING ----------------
 st.markdown("""
 <style>
-    /* Hide Streamlit default header, deploy button, and footer */
-    header[data-testid="stHeader"], 
-    .stDeployButton, 
-    [data-testid="stToolbarActions"], 
-    #MainMenu, 
+    /* Hide ONLY the Streamlit Deploy button and footer; keep 3-dots menu active */
+    .stDeployButton,
+    [data-testid="stAppDeployButton"],
     footer {
         visibility: hidden !important;
         display: none !important;
         height: 0 !important;
+    }
+
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
     }
 
     /* Dark tactical command aesthetic */
