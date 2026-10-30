@@ -50,6 +50,37 @@ st.markdown("""
         color: #e6edf3;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
+
+    /* High-Impact Tactical Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        border-bottom: 2px solid #21262d;
+        padding-bottom: 6px;
+        margin-bottom: 20px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #8b949e;
+        padding: 9px 18px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        transition: all 0.2s ease;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #ffffff;
+        background-color: #21262d;
+        border-color: #58a6ff;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(180deg, rgba(88, 166, 255, 0.18) 0%, rgba(22, 27, 34, 0.9) 100%) !important;
+        color: #58a6ff !important;
+        border: 1px solid #58a6ff !important;
+        box-shadow: 0 0 14px rgba(88, 166, 255, 0.25) !important;
+    }
     
     /* Top HUD header bar */
     .hud-header {
@@ -531,8 +562,16 @@ def load_yolo_model(path: str):
                 m.model.names[21] = "Cat (Fluffy Breed)"
     return m
 
+def sidebar_header(tag: str, title: str, accent_color: str = "#58a6ff"):
+    return f"""
+    <div style="display: flex; align-items: center; gap: 8px; margin: 18px 0 8px 0; padding-bottom: 6px; border-bottom: 1px solid #21262d;">
+        <span style="background: {accent_color}22; color: {accent_color}; border: 1px solid {accent_color}55; font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.6px; text-transform: uppercase;">{tag}</span>
+        <span style="font-size: 0.82rem; font-weight: 800; color: #f0f6fc; letter-spacing: 0.8px; text-transform: uppercase;">{title}</span>
+    </div>
+    """
+
 # Sidebar
-st.sidebar.markdown("### SOCIETY CONFIGURATION")
+st.sidebar.markdown(sidebar_header("SITE", "Society Configuration", "#00f59b"), unsafe_allow_html=True)
 society_name = st.sidebar.text_input("Housing Society / Complex Name", value="Green Valley Residency")
 safe_assembly_point = st.sidebar.text_input("Designated Safe Assembly Point", value="Central Community Lawn / Park")
 main_gate_name = st.sidebar.text_input("Primary Evacuation Gate", value="Main North Security Gate")
@@ -550,7 +589,7 @@ st.sidebar.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### TACTICAL CONFIGURATION")
+st.sidebar.markdown(sidebar_header("SENSOR", "Tactical Sensor Payload", "#58a6ff"), unsafe_allow_html=True)
 
 selected_model_name = st.sidebar.selectbox(
     "Active Sensor Payload Model",
@@ -571,7 +610,7 @@ except Exception as e:
 
 # ---------------- MISSION TARGET SELECTOR ----------------
 st.sidebar.markdown("---")
-st.sidebar.markdown("### MISSION TARGET SELECTOR")
+st.sidebar.markdown(sidebar_header("TARGETS", "Mission Search Profile", "#a371f7"), unsafe_allow_html=True)
 
 selected_preset = st.sidebar.selectbox(
     "Mission Target Profile",
@@ -652,7 +691,7 @@ if not is_optical_model:
         )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### SENSOR CALIBRATION & SENSITIVITY")
+st.sidebar.markdown(sidebar_header("TUNING", "Sensor Calibration & Sensitivity", "#ffd166"), unsafe_allow_html=True)
 
 sensitivity_mode = st.sidebar.radio(
     "Operational Sensitivity Mode",
@@ -730,7 +769,15 @@ if "latest_detections" not in st.session_state:
 # TAB 1: SECTOR IMAGERY RECON
 # =======================================================
 with tab_image:
-    st.markdown("#### Reconnaissance Imagery Feed")
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #161b22 0%, #0d1117 100%); border-left: 4px solid #58a6ff; border-radius: 6px; padding: 10px 16px; margin: 4px 0 16px 0; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #21262d; border-right: 1px solid #21262d; border-bottom: 1px solid #21262d;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(88, 166, 255, 0.15); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.4); font-size: 0.68rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px;">INGEST</span>
+            <span style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: 0.8px; text-transform: uppercase;">Reconnaissance Imagery Ingestion</span>
+        </div>
+        <span style="font-size: 0.75rem; color: #8b949e;">Thermal Infrared &bull; Optical RGB &bull; Benchmark Presets</span>
+    </div>
+    """, unsafe_allow_html=True)
     
     c_input1, c_input2 = st.columns([1, 1])
     selected_img = None
@@ -893,7 +940,15 @@ with tab_image:
         col_intel, col_ops = st.columns([1.15, 1], gap="large")
 
         with col_intel:
-            st.markdown("##### Aerial Reconnaissance Feeds & Spatial Blueprint")
+            st.markdown("""
+            <div style="background: linear-gradient(90deg, #161b22 0%, #0d1117 100%); border-left: 4px solid #00f0ff; border-radius: 6px; padding: 9px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #21262d; border-right: 1px solid #21262d; border-bottom: 1px solid #21262d;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="background: rgba(0, 240, 255, 0.15); color: #00f0ff; border: 1px solid rgba(0, 240, 255, 0.4); font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">FEED 01</span>
+                    <span style="font-size: 0.88rem; font-weight: 800; color: #ffffff; letter-spacing: 0.8px; text-transform: uppercase;">Aerial Reconnaissance Feeds & Spatial Layout</span>
+                </div>
+                <span style="font-size: 0.72rem; color: #00f0ff; font-weight: 700;">DUAL SENSOR</span>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Feeds: Raw Sensor & AI Overlay
             sub_col_raw, sub_col_ai = st.columns(2)
@@ -904,7 +959,12 @@ with tab_image:
                 st.image(annotated_rgb, caption=f"AI Detection Overlay ({dt_ms:.1f}ms latency)", use_container_width=True)
 
             # 2D GIS Tactical Campus Blueprint
-            st.markdown(f"**Campus Spatial Blueprint (Towers A–D & Ring-Road)**")
+            st.markdown(f"""
+            <div style="display: flex; align-items: center; gap: 8px; margin: 16px 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #21262d;">
+                <span style="background: rgba(0, 245, 155, 0.15); color: #00f59b; border: 1px solid rgba(0, 245, 155, 0.4); font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase;">VECTOR GIS</span>
+                <span style="font-size: 0.82rem; font-weight: 800; color: #f0f6fc; letter-spacing: 0.7px; text-transform: uppercase;">Campus Spatial Blueprint &bull; Towers A–D & Ring-Road</span>
+            </div>
+            """, unsafe_allow_html=True)
             map_html = create_society_tactical_map(
                 society_name=society_name,
                 safe_zone=safe_assembly_point,
@@ -936,7 +996,15 @@ with tab_image:
                 st.image(debris_overlay, caption=f"Structural Rubble Heatmap — Severity: {rubble_sev}% ({'IMPASSABLE' if is_debris_blocked else 'TRAVERSABLE'})", use_container_width=True)
 
         with col_ops:
-            st.markdown("##### Tactical Triage & Incident Dispatch")
+            st.markdown("""
+            <div style="background: linear-gradient(90deg, #161b22 0%, #0d1117 100%); border-left: 4px solid #ff3366; border-radius: 6px; padding: 9px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #21262d; border-right: 1px solid #21262d; border-bottom: 1px solid #21262d;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="background: rgba(255, 51, 102, 0.15); color: #ff3366; border: 1px solid rgba(255, 51, 102, 0.4); font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">COMMAND</span>
+                    <span style="font-size: 0.88rem; font-weight: 800; color: #ffffff; letter-spacing: 0.8px; text-transform: uppercase;">Tactical Triage & Incident Dispatch</span>
+                </div>
+                <span style="font-size: 0.72rem; color: #ff3366; font-weight: 800; letter-spacing: 0.5px;">INSARAG PRIORITY</span>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Triage Metrics Grid
             st.markdown(f"""
@@ -1051,7 +1119,12 @@ with tab_image:
                 """, unsafe_allow_html=True)
 
             # Sector Resident Cross-Reference (Smart Link)
-            st.markdown(f"**Sector Resident Cross-Reference (Smart Link)**")
+            st.markdown(f"""
+            <div style="display: flex; align-items: center; gap: 8px; margin: 18px 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #21262d;">
+                <span style="background: rgba(88, 166, 255, 0.15); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.4); font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase;">SMART LINK</span>
+                <span style="font-size: 0.82rem; font-weight: 800; color: #f0f6fc; letter-spacing: 0.7px; text-transform: uppercase;">Sector Resident Cross-Reference &bull; Live Census Database</span>
+            </div>
+            """, unsafe_allow_html=True)
             st.caption("Cross-reference camera sector coordinates with registered residents, vulnerabilities, and emergency contacts:")
             
             sc_c1, sc_c2 = st.columns([1, 1.3])
@@ -1123,8 +1196,15 @@ _Issued by Disaster Management Taskforce // {society_name}_"""
 # TAB 2: AERIAL DRONE VIDEO RECON
 # =======================================================
 with tab_video:
-    st.markdown("#### 🎥 Drone Video Surveillance & Search Grid")
-    st.caption("Inspect aerial drone flights frame-by-frame with persistent multi-object tracking and noise suppression.")
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #161b22 0%, #0d1117 100%); border-left: 4px solid #a371f7; border-radius: 6px; padding: 10px 16px; margin: 4px 0 16px 0; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #21262d; border-right: 1px solid #21262d; border-bottom: 1px solid #21262d;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(163, 113, 247, 0.15); color: #a371f7; border: 1px solid rgba(163, 113, 247, 0.4); font-size: 0.68rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px;">FLIGHT VIDEO</span>
+            <span style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: 0.8px; text-transform: uppercase;">Aerial Drone Video Surveillance & Tracking</span>
+        </div>
+        <span style="font-size: 0.75rem; color: #8b949e;">Persistent Multi-Object Tracking &bull; Anti-Flicker Consensus</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     v_c1, v_c2 = st.columns([1, 1])
     
@@ -1144,11 +1224,11 @@ with tab_video:
         b_c1, b_c2 = st.columns(2)
         with b_c1:
             if demo_drone.exists():
-                if st.button("🚁 Preset 1: Aerial FLIR Recon", use_container_width=True):
+                if st.button("Preset 1: Aerial FLIR Recon", use_container_width=True):
                     st.session_state["active_video_path"] = str(demo_drone)
         with b_c2:
             if demo_ped.exists():
-                if st.button("🚶 Preset 2: Night IR Pedestrians", use_container_width=True):
+                if st.button("Preset 2: Night IR Pedestrians", use_container_width=True):
                     st.session_state["active_video_path"] = str(demo_ped)
 
     video_source_path = st.session_state.get("active_video_path", None)
@@ -1468,20 +1548,27 @@ _Issued by Disaster Management Taskforce // {society_name}_"""
 # TAB 3: LIVE TACTICAL RECON (WEBCAM / IP DRONE STREAM)
 # =======================================================
 with tab_live:
-    st.markdown("#### 📡 Real-Time Reconnaissance Stream (Mac Webcam / IP Drone Camera)")
-    st.caption("Live edge video ingestion supporting local webcam and RTSP / HTTP network streams from drones or phones.")
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #161b22 0%, #0d1117 100%); border-left: 4px solid #00f0ff; border-radius: 6px; padding: 10px 16px; margin: 4px 0 16px 0; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #21262d; border-right: 1px solid #21262d; border-bottom: 1px solid #21262d;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(0, 240, 255, 0.15); color: #00f0ff; border: 1px solid rgba(0, 240, 255, 0.4); font-size: 0.68rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px;">LIVE FEED</span>
+            <span style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: 0.8px; text-transform: uppercase;">Real-Time Tactical Video Ingestion</span>
+        </div>
+        <span style="font-size: 0.75rem; color: #8b949e;">Webcam &bull; Drone RTSP Stream &bull; Instant Edge Snapshot</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     live_c1, live_c2 = st.columns([1, 1])
     with live_c1:
         stream_mode = st.radio(
             "Live Video Ingestion Mode",
-            ["📸 High-Resolution Live Camera Snapshot", "🎥 Continuous Edge Stream (Webcam / IP Camera)"],
+            ["High-Resolution Live Camera Snapshot", "Continuous Edge Stream (Webcam / IP Camera)"],
             index=0
         )
     with live_c2:
         stream_sensor_type = st.radio(
             "Active Camera Sensor Payload",
-            ["☀️ Daylight Optical (Mac Webcam / Visible RGB)", "🌡️ Thermal Infrared IR (FLIR / Seek / Drone Thermal)"],
+            ["Daylight Optical (Mac Webcam / Visible RGB)", "Thermal Infrared IR (FLIR / Seek / Drone Thermal)"],
             index=0,
             help="Your Mac Webcam captures Daylight Optical RGB light. Always keep 'Daylight Optical' selected when using your laptop webcam to ensure survivors are accurately classified and prevent false dog detections."
         )
@@ -1585,8 +1672,15 @@ with tab_live:
 # TAB 4: SOCIETY INCIDENT COMMAND & RWA DISPATCH
 # =======================================================
 with tab_dispatch:
-    st.markdown(f"#### 📋 {society_name} // Incident Command & RWA Dispatch")
-    st.caption("Coordinate residential tower evacuations, gate clearance, medical triage, and multi-agency response.")
+    st.markdown(f"""
+    <div style="background: linear-gradient(90deg, #161b22 0%, #0d1117 100%); border-left: 4px solid #ff3366; border-radius: 6px; padding: 10px 16px; margin: 4px 0 16px 0; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #21262d; border-right: 1px solid #21262d; border-bottom: 1px solid #21262d;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(255, 51, 102, 0.15); color: #ff3366; border: 1px solid rgba(255, 51, 102, 0.4); font-size: 0.68rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px;">COMMAND</span>
+            <span style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: 0.8px; text-transform: uppercase;">{society_name} &bull; Incident Command & Multi-Agency Dispatch</span>
+        </div>
+        <span style="font-size: 0.75rem; color: #8b949e;">INSARAG / NDRF Certified SitRep &bull; 112 CAD Integration</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     current_dets = st.session_state.latest_detections
     latest_rubble = st.session_state.get("latest_rubble", (0.0, False))
@@ -1846,8 +1940,15 @@ We have an active residential structural collapse/earthquake emergency.
 # TAB 5: SOCIETY RESIDENT DIRECTORY & EVACUATION ROSTER
 # =======================================================
 with tab_registry:
-    st.markdown(f"#### {society_name} // Resident Directory & Evacuation Roster")
-    st.caption("100% Offline SQLite database for gate headcount tally, high-vulnerability rescue tracking, and flat management.")
+    st.markdown(f"""
+    <div style="background: linear-gradient(90deg, #161b22 0%, #0d1117 100%); border-left: 4px solid #00f59b; border-radius: 6px; padding: 10px 16px; margin: 4px 0 16px 0; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #21262d; border-right: 1px solid #21262d; border-bottom: 1px solid #21262d;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(0, 245, 155, 0.15); color: #00f59b; border: 1px solid rgba(0, 245, 155, 0.4); font-size: 0.68rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px;">DATABASE</span>
+            <span style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: 0.8px; text-transform: uppercase;">{society_name} &bull; Resident Directory & Evacuation Roster</span>
+        </div>
+        <span style="font-size: 0.75rem; color: #8b949e;">Offline SQLite Census &bull; Gate Headcount &bull; Vulnerability Board</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Top KPI Cards
     stats = get_headcount_stats()
