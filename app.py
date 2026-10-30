@@ -305,19 +305,19 @@ USAR_TACTICAL_TARGETS = {
 }
 
 MISSION_TARGET_PRESETS = {
-    "🌟 Standard USAR Search Grid (Person + Dog + Vehicle + Backpack)": [
+    "🐾 Primary Life & Pet Rescue (Person + Dogs + Cats)": [
+        "👤 Person (Survivors)",
+        "🐕 Dog (Search K9 / Pet)",
+        "🐈 Cat (Domestic Pet)"
+    ],
+    "🌟 Complete USAR Search Grid (Person + Dog + Vehicle + Backpack)": [
         "👤 Person (Survivors)",
         "🐕 Dog (Search K9 / Pet)",
         "🚗 Car / Vehicle",
         "🎒 Backpack (Victim Marker)"
     ],
-    "🆘 Life Rescue Priority (Person Only)": [
+    "🆘 Human Survivors Only (Zero Animal False Positives)": [
         "👤 Person (Survivors)"
-    ],
-    "🐕 Life & Pet Evacuation (Person + Dogs + Cats)": [
-        "👤 Person (Survivors)",
-        "🐕 Dog (Search K9 / Pet)",
-        "🐈 Cat (Domestic Pet)"
     ],
     "🎒 Rubble Clues & Personal Belongings (Person + Bags + Phones)": [
         "👤 Person (Survivors)",
@@ -361,7 +361,7 @@ def resolve_detection_info(raw_cid: int, is_optical: bool = True, opt_names: dic
         thermal_map = {
             0: ("Person", "Survivor", "🔴"),
             1: ("Obstacle / Vehicle", "Evacuation Obstacle", "🚗"),
-            2: ("Dog", "Canine & Pet", "🐕")
+            2: ("Dog / Pet Animal", "Canine & Pet", "🐾")
         }
         return thermal_map.get(raw_cid, (f"Class {raw_cid}", "Thermal Signature", "🟢"))
 
@@ -531,8 +531,7 @@ if "Custom" in selected_preset:
         default=[
             "👤 Person (Survivors)",
             "🐕 Dog (Search K9 / Pet)",
-            "🚗 Car / Vehicle",
-            "🎒 Backpack (Victim Marker)"
+            "🐈 Cat (Domestic Pet)"
         ],
         help="Select any targets to search for. 'Person' is always enforced for life safety."
     )
@@ -840,6 +839,11 @@ with tab_image:
                 <div class="card-value val-victim">{survivors_count}</div>
                 <div style="font-size: 0.75rem; color: #8b949e;">Immediate extraction target</div>
             </div>
+            <div class="tactical-card card-k9">
+                <div class="card-label">🐾 Pets & Animals (Dogs/Cats)</div>
+                <div class="card-value val-k9">{pets_count}</div>
+                <div style="font-size: 0.75rem; color: #8b949e;">Search K9s & family pets</div>
+            </div>
             <div class="tactical-card card-clue">
                 <div class="card-label">🎒 Rubble Clues & Bags</div>
                 <div class="card-value val-clue">{clues_count}</div>
@@ -849,11 +853,6 @@ with tab_image:
                 <div class="card-label">🚗 Evacuation Obstacles</div>
                 <div class="card-value val-vehicle">{obs_count}</div>
                 <div style="font-size: 0.75rem; color: #8b949e;">Road clearance assessment</div>
-            </div>
-            <div class="tactical-card card-k9">
-                <div class="card-label">🐕 Search Dogs & Pets</div>
-                <div class="card-value val-k9">{pets_count}</div>
-                <div style="font-size: 0.75rem; color: #8b949e;">K9 teams & trapped animals</div>
             </div>
             <div class="tactical-card card-total">
                 <div class="card-label">🟢 Total Targets</div>
@@ -865,7 +864,7 @@ with tab_image:
 
         # Tactical Alert Evaluation
         people_boxes = [d for d in detections if d["Category"] == "Person"]
-        dog_boxes = [d for d in detections if d["Category"] in ["Dog", "Cat"]]
+        dog_boxes = [d for d in detections if d["Category"] in ["Dog", "Cat", "Dog / Pet Animal"]]
 
         # Check for multi-victim cluster in rubble
         multi_victim = False
@@ -894,10 +893,15 @@ with tab_image:
             </div>
             """, unsafe_allow_html=True)
 
-        if dog_boxes and people_boxes:
-            st.markdown("""
+        if pets_count > 0:
+            pet_names = []
+            for name, cnt in counts_by_name.items():
+                if any(k in name for k in ["Dog", "Cat", "Pet"]):
+                    pet_names.append(f"{cnt} {name}(s)")
+            pet_summary = ", ".join(pet_names) if pet_names else f"{pets_count} Pet Animal(s)"
+            st.markdown(f"""
             <div class="alert-box alert-k9">
-                <strong>🐕 ACTIVE K9 OPERATIONS IN SECTOR:</strong> SAR Dog handler team identified operating in this reconnaissance grid.
+                <strong>🐾 DOMESTIC PET / K9 RESCUE TARGET CONFIRMED:</strong> {pet_summary} located in sector. Coordinate pet containment crates alongside family extraction.
             </div>
             """, unsafe_allow_html=True)
 
@@ -1545,6 +1549,8 @@ with tab_dispatch:
     pct_accounted = min(1.0, (int(safe_lawn_est) + c_p) / max(1, int(total_society_pop)))
     st.progress(pct_accounted)
     st.caption(f"**Safety Roster:** {pct_accounted:.1%} of society population accounted for ({int(safe_lawn_est) + c_p} / {total_society_pop} residents).")
+    if c_d > 0:
+        st.success(f"🐾 **Domestic Pets & Animals Accounted:** {c_d} pet(s) (dogs/cats) identified in sweep. Ready for family reunification at {safe_assembly_point}.")
     if c_clues > 0:
         st.info(f"🎒 **Rubble Clues & Victim Anchors Located:** {c_clues} item(s) (backpacks, bags, phones) cataloged in disaster sector.")
 
