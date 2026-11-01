@@ -1,7 +1,7 @@
-# 🚨 USAR-AI: Residential Society Earthquake Disaster Response & Tactical USAR Command System
+# 🚨 USAR-AI: Residential Society Earthquake Disaster Response & Tactical Command System
 ## Comprehensive Technical Project Report & Architectural Specification
 
-**Author / Developer**: Pratik & USAR Engineering Team  
+**Project Team / Authors**: Pratik Raj (Lead), Anju Thangachan, Mohamed Naimudeen  
 **Institution / Target Context**: Urban Search and Rescue (USAR), Civil Defense, Residential Welfare Associations (RWAs)  
 **Deployment Profile**: 100% Offline Edge Computing • Apple Silicon MPS / CUDA • Zero Cloud Dependency  
 **Standards Compliance**: INSARAG (UN OCHA) Volume II Guidelines • NDRF Disaster Response SOPs  

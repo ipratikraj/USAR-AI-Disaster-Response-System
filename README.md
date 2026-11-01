@@ -1,4 +1,4 @@
-# 🚨 USAR-AI: Residential Society Earthquake Disaster Response & Tactical Command Console
+# 🚨 USAR-AI: Residential Society Earthquake Disaster Response & Tactical Command System
 
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python)](https://python.org)
 [![Neural Vision](https://img.shields.io/badge/YOLO11-Triple--Sensor%20Infrared-red?logo=ultralytics)](https://github.com/ultralytics/ultralytics)

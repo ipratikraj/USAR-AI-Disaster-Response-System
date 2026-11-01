@@ -22,7 +22,7 @@ from datetime import datetime
 
 # ---------------- PAGE CONFIGURATION ----------------
 st.set_page_config(
-    page_title="Residential Society // Earthquake USAR AI",
+    page_title="USAR-AI: Residential Society Earthquake Disaster Response & Tactical Command System",
     page_icon="🚨",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -382,20 +382,31 @@ st.markdown("""
 
 # ---------------- HUD TOP BANNER ----------------
 st.markdown("""
-<div class="hud-header">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div>
-            <div style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px;">
-                <span style="background: #ff3366; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 800;">USAR AI</span>
-                Green Valley Residency &bull; Disaster Response Command Console
+<div class="hud-header" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 30, 0.98) 100%); border: 1px solid rgba(239, 68, 68, 0.35); border-left: 6px solid #ef4444; border-radius: 12px; padding: 16px 22px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(239, 68, 68, 0.12); margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+            <!-- PROMINENT USAR-AI BRAND SHIELD -->
+            <div style="background: linear-gradient(135deg, #ff1e56 0%, #d90429 50%, #990000 100%); color: #ffffff; padding: 8px 22px; border-radius: 8px; font-size: 1.75rem; font-weight: 950; letter-spacing: 2.5px; box-shadow: 0 0 25px rgba(239, 68, 68, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.4); border: 1.5px solid rgba(255, 255, 255, 0.3); display: inline-flex; align-items: center; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                USAR-AI
             </div>
-            <div style="font-size: 0.85rem; color: #8b949e; margin-top: 4px;">
-                Autonomous Aerial Thermal Reconnaissance &bull; Trapped Resident Triage &bull; 100% Offline Edge Architecture
+            <div style="display: flex; flex-direction: column; justify-content: center;">
+                <div style="font-size: 1.45rem; font-weight: 850; color: #ffffff; letter-spacing: 0.4px; line-height: 1.25; text-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+                    Residential Society Earthquake Disaster Response &amp; Tactical Command System
+                </div>
+                <div style="font-size: 0.88rem; color: #94a3b8; margin-top: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span style="color: #38bdf8; font-weight: 700; background: rgba(56, 189, 248, 0.12); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">📍 Green Valley Residency Campus</span>
+                    <span style="color: #475569;">&bull;</span>
+                    <span style="color: #cbd5e1; font-weight: 500;">🚁 Autonomous Aerial Thermal Reconnaissance</span>
+                    <span style="color: #475569;">&bull;</span>
+                    <span style="color: #cbd5e1; font-weight: 500;">👥 Trapped Resident Triage</span>
+                    <span style="color: #475569;">&bull;</span>
+                    <span style="color: #4ade80; font-weight: 700; background: rgba(74, 222, 128, 0.12); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(74, 222, 128, 0.25);">🛡️ 100% Offline Edge Architecture</span>
+                </div>
             </div>
         </div>
-        <div style="display: flex; gap: 8px;">
-            <span class="hud-badge badge-online">🟢 System Armed</span>
-            <span class="hud-badge badge-mps">🛡️ 100% Offline Edge</span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <span class="hud-badge badge-online" style="font-size: 0.85rem; padding: 7px 14px; font-weight: 700;">🟢 SYSTEM ARMED</span>
+            <span class="hud-badge badge-mps" style="font-size: 0.85rem; padding: 7px 14px; font-weight: 700;">⚡ AIR-GAPPED TACTICAL CORE</span>
         </div>
     </div>
 </div>

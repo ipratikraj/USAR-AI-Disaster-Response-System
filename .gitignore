@@ -21,9 +21,18 @@ datasets/
 debug_archive/
 samples/*.mp4
 
-# Training artifacts (keep best weights)
+# Training artifacts (keep best weights and summary curves)
 runs/**/train/
 runs/**/val/
 runs/**/test/
 runs/**/events.out.tfevents.*
 runs/**/*.csv
+runs/**/train_batch*.jpg
+runs/**/val_batch*.jpg
+runs/**/labels.jpg
+runs/**/weights/last.pt
+runs/detect/runs/evaluation/
+runs/detect/runs/testing/
+runs/detect/runs/flir_test/
+runs/detect/runs/seek_test_triple/
+runs/disaster_detector/
