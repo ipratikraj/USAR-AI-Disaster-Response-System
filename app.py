@@ -416,10 +416,8 @@ st.markdown("""
 AVAILABLE_MODELS = {}
 _triple_weights = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_triplesensor_detector/weights/best.pt"
 if Path(_triple_weights).exists():
-    AVAILABLE_MODELS["Triple-Sensor Universal (FLIR + Seek + LLVIP)"] = _triple_weights
+    AVAILABLE_MODELS["Triple-Sensor Universal (Thermal LWIR 8–14μm)"] = _triple_weights
 AVAILABLE_MODELS["Daylight Optical Recon (RGB / Visible Light)"] = "/Users/pratik/DisasterResponseSystem/yolo11n.pt"
-AVAILABLE_MODELS["Multi-Sensor Infrared (FLIR + Seek)"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/disaster_multisensor_detector-2/weights/best.pt"
-AVAILABLE_MODELS["FLIR-Only Baseline Infrared"] = "/Users/pratik/DisasterResponseSystem/runs/detect/runs/flir_thermal_detector/weights/best.pt"
 
 # ---------------- USAR TACTICAL TARGET CATALOG & PRESETS ----------------
 USAR_TACTICAL_TARGETS = {

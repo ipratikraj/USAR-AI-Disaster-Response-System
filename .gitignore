@@ -36,3 +36,26 @@ runs/detect/runs/testing/
 runs/detect/runs/flir_test/
 runs/detect/runs/seek_test_triple/
 runs/disaster_detector/
+
+# Scratch presentation & study notes generator scripts
+build_*.py
+compile_*.py
+create_*.py
+generate_*.py
+guidebook_*.py
+script_*.py
+test_*.py
+patch_compile.py
+insert_yolo_diagram_slide.py
+render_hd_yolo11_architecture.py
+add_chapters_27_to_37.py
+fix_*.py
+expand_*.py
+
+# Temporary crops and test artifacts
+crop_*.png
+boosted_crop.png
+diagram_sharpness_check.png
+s12_extracted_img.png
+yolo11_architecture_*.png
+test_*.pdf
